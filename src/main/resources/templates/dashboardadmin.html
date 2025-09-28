@@ -2,12 +2,21 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Dashboard Administrador</title>
+    <style>
+        nav ul { list-style: none; padding: 0; }
+        nav li { margin-bottom: 12px; }
+        a { text-decoration: none; color: #3366cc; font-weight: bold; }
+        a:hover { text-decoration: underline; }
+    </style>
 </head>
 <body>
 <h1>Bienvenido, Administrador</h1>
-
-<a href="/usuarios">Gestionar usuarios</a>
-<a href="/productos">Gestionar productos / inventario</a>
-
+<nav>
+    <ul>
+        <li><a href="/usuarios">Gestionar usuarios</a></li>
+        <li><a href="/productos">Gestionar productos / inventario</a></li>
+        <li><a href="/proveedores">Gestión de Proveedores</a></li>
+    </ul>
+</nav>
 </body>
 </html>

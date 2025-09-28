@@ -14,10 +14,6 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    // Obtener todos los usuarios
-    public List<Usuario> getAllUsuarios() {
-        return usuarioRepository.findAll();
-    }
 
     // Guardar un usuario
     public Usuario saveUsuario(Usuario usuario) {
@@ -37,5 +33,26 @@ public class UsuarioService {
     // Buscar usuario por email
     public Usuario getUsuarioByEmail(String email) {
         return usuarioRepository.findByEmail(email);
+    }
+
+    public Usuario findByEmail(String email) {
+        return usuarioRepository.findByEmail(email);
+    }
+
+
+    public List<Usuario> getAllUsuarios() {
+        return usuarioRepository.findByActivoTrue();
+    }
+    public void inactivarUsuario(Long id) {
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
+        if (usuarioOpt.isPresent()) {
+            Usuario usuario = usuarioOpt.get();
+            usuario.setActivo(false);
+            usuarioRepository.save(usuario);
+        }
+
+    }
+    public boolean existeUsuarioPorEmail(String email) {
+        return usuarioRepository.findByEmail(email) != null;
     }
 }

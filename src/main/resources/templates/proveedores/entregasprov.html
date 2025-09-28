@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Entregas de Proveedor</title>
+</head>
+<body>
+<h1 th:text="'Entregas de ' + ${proveedor.nombre}"></h1>
+<a th:href="@{/proveedores/entregas/nueva/{proveedorId}(proveedorId=${proveedor.id})}">Registrar nueva entrega</a>
+<table border="1">
+    <tr>
+        <th>Producto</th>
+        <th>Fecha de entrega</th>
+    </tr>
+    <tr th:each="e : ${entregas}">
+        <td th:text="${e.producto}"></td>
+        <td th:text="${e.fechaEntrega}"></td>
+    </tr>
+</table>
+<a href="/proveedores">Volver a proveedores</a>
+</body>
+</html>

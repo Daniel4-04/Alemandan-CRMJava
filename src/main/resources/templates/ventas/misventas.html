@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Mis Ventas</title>
+</head>
+<body>
+<h1>Historial de Mis Ventas</h1>
+
+<form th:action="@{/ventas/mis-ventas}" method="get">
+    <label>Fecha inicio:</label>
+    <input type="date" name="fechaInicio" th:value="${param.fechaInicio}" />
+    <label>Fecha fin:</label>
+    <input type="date" name="fechaFin" th:value="${param.fechaFin}" />
+    <label>Producto:</label>
+    <select name="productoId">
+        <option value="">Todos</option>
+        <option th:each="prod : ${productos}" th:value="${prod.id}" th:text="${prod.nombre}"></option>
+    </select>
+    <label>Método de pago:</label>
+    <select name="metodoPago">
+        <option value="">Todos</option>
+        <option value="Efectivo">Efectivo</option>
+        <option value="Tarjeta">Tarjeta</option>
+        <option value="Transferencia">Transferencia</option>
+    </select>
+    <button type="submit">Filtrar</button>
+</form>
+
+<form th:action="@{/ventas/exportar-pdf}" method="get" style="display:inline;">
+    <input type="hidden" name="fechaInicio" th:value="${param.fechaInicio}" />
+    <input type="hidden" name="fechaFin" th:value="${param.fechaFin}" />
+    <input type="hidden" name="productoId" th:value="${param.productoId}" />
+    <input type="hidden" name="metodoPago" th:value="${param.metodoPago}" />
+    <button type="submit">Exportar PDF</button>
+</form>
+<form th:action="@{/ventas/exportar-excel}" method="get" style="display:inline;">
+    <input type="hidden" name="fechaInicio" th:value="${param.fechaInicio}" />
+    <input type="hidden" name="fechaFin" th:value="${param.fechaFin}" />
+    <input type="hidden" name="productoId" th:value="${param.productoId}" />
+    <input type="hidden" name="metodoPago" th:value="${param.metodoPago}" />
+    <button type="submit">Exportar Excel</button>
+</form>
+
+<table border="1">
+    <tr>
+        <th>Fecha</th>
+        <th>Total</th>
+        <th>Método de pago</th>
+        <th>Productos</th>
+    </tr>
+    <tr th:each="venta : ${ventas}">
+        <td th:text="${venta.fecha}"></td>
+        <td th:text="${venta.total}"></td>
+        <td th:text="${venta.metodoPago}"></td>
+        <td>
+            <ul>
+                <li th:each="detalle : ${venta.detalles}">
+                    <span th:text="${detalle.producto.nombre}"></span>
+                    (<span th:text="${detalle.cantidad}"></span>x
+                    <span th:text="${detalle.precioUnitario}"></span>)
+                </li>
+            </ul>
+        </td>
+    </tr>
+</table>
+<a href="/dashboard">Volver</a>
+</body>
+</html>

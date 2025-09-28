@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Caja - Realizar Venta</title>
+    <script>
+        function agregarProducto() {
+            const container = document.getElementById('productos-container');
+            const index = container.children.length;
+            const template = document.getElementById('producto-template');
+            const clone = template.cloneNode(true);
+            clone.style.display = '';
+            clone.querySelector('[name="detalles[0].producto.id"]').setAttribute('name', `detalles[${index}].producto.id`);
+            clone.querySelector('[name="detalles[0].cantidad"]').setAttribute('name', `detalles[${index}].cantidad`);
+            container.appendChild(clone);
+        }
+        function eliminarProducto(btn) {
+            btn.parentNode.remove();
+        }
+    </script>
+</head>
+<body>
+<h1>Caja</h1>
+<form th:action="@{/ventas/registrar}" method="post">
+    <div id="productos-container">
+        <div id="producto-template">
+            <label>Producto:</label>
+            <select name="detalles[0].producto.id" required>
+                <option th:each="prod : ${productos}" th:value="${prod.id}" th:text="${prod.nombre + ' (' + prod.cantidad + ')'}"></option>
+            </select>
+            <label>Cantidad:</label>
+            <input type="number" name="detalles[0].cantidad" min="1" required />
+            <button type="button" onclick="eliminarProducto(this)">Eliminar</button>
+        </div>
+    </div>
+    <button type="button" onclick="agregarProducto()">Agregar otro producto</button>
+    <br><br>
+    <label>Método de pago:</label>
+    <select name="metodoPago" required>
+        <option value="Efectivo">Efectivo</option>
+        <option value="Tarjeta">Tarjeta</option>
+        <option value="Transferencia">Transferencia</option>
+    </select>
+    <br><br>
+    <button type="submit">Vender</button>
+</form>
+<div th:if="${ventaExitosa}" style="color:green;">
+    <p>¡Venta realizada exitosamente!</p>
+</div>
+<div th:if="${ventaError}" style="color:red;">
+    <p th:text="${ventaError}"></p>
+</div>
+<a href="/dashboard">Volver al dashboard</a>
+<script>
+    document.getElementById('producto-template').style.display = '';
+</script>
+</body>
+</html>

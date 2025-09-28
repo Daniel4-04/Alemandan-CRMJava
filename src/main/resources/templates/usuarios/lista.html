@@ -24,7 +24,8 @@
         <td th:text="${usuario.email}"></td>
         <td th:text="${usuario.rol}"></td>
         <td>
-            <a th:href="@{'/usuarios/eliminar/' + ${usuario.id}}">Eliminar</a>
+            <a th:href="@{'/usuarios/eliminar/' + ${usuario.id}}"
+               onclick="return confirm('¿Seguro que quieres inactivar este usuario?');">Inactivar</a>
         </td>
     </tr>
     </tbody>

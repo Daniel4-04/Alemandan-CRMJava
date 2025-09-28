@@ -32,11 +32,17 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .authenticationProvider(authenticationProvider()) // <-- añade esto
+                .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
+                        // Acceso público
                         .requestMatchers("/login", "/usuarios/nuevo", "/usuarios/guardar", "/css/**", "/js/**").permitAll()
+                        // Dashboard general (redirigido según rol)
                         .requestMatchers("/dashboard").authenticated()
-                        .requestMatchers("/usuarios/**").hasAnyRole("ADMIN", "EMPLEADO")
+                        // Módulos solo para ADMIN
+                        .requestMatchers("/usuarios/**", "/productos/**", "/proveedores/**", "/dashboard-admin", "/dashboard-admin/**").hasRole("ADMIN")
+                        // Módulos solo para EMPLEADO
+                        .requestMatchers("/ventas/caja", "/ventas/caja/**", "/ventas/registrar", "/ventas/mis-ventas", "/dashboard-empleado", "/dashboard-empleado/**").hasRole("EMPLEADO")
+                        // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
