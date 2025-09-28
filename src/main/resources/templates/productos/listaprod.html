@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Lista de Productos</title>
+</head>
+<body>
+<h1>Productos / Inventario</h1>
+<a href="/dashboard">Volver al Dashboard</a>
+<a href="/productos/nuevo">Agregar Producto</a>
+<table border="1">
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Descripción</th>
+        <th>Cantidad</th>
+        <th>Precio</th>
+        <th>Acciones</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="producto : ${productos}">
+        <td th:text="${producto.id}"></td>
+        <td th:text="${producto.nombre}"></td>
+        <td th:text="${producto.descripcion}"></td>
+        <td th:text="${producto.cantidad}"></td>
+        <td th:text="${producto.precio}"></td>
+        <td>
+            <a th:href="@{'/productos/editar/' + ${producto.id}}">Editar</a>
+            <a th:href="@{'/productos/eliminar/' + ${producto.id}}"
+               onclick="return confirm('¿Seguro que quieres inactivar este producto?');">Inactivar</a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>

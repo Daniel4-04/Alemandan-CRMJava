@@ -5,7 +5,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.*;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -17,7 +17,8 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return org.springframework.security.crypto.password.NoOpPasswordEncoder.getInstance();
+        // Solo para pruebas, NO USAR EN PRODUCCIÓN
+        return NoOpPasswordEncoder.getInstance();
     }
 
     @Bean
@@ -31,14 +32,16 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-                .authenticationProvider(authenticationProvider())
+                .authenticationProvider(authenticationProvider()) // <-- añade esto
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/login", "/usuarios/nuevo", "/usuarios/guardar", "/css/**", "/js/**").permitAll()
+                        .requestMatchers("/dashboard").authenticated()
                         .requestMatchers("/usuarios/**").hasAnyRole("ADMIN", "EMPLEADO")
                         .anyRequest().authenticated()
                 )
                 .formLogin(form -> form
                         .loginPage("/login")
+                        .defaultSuccessUrl("/dashboard", true)
                         .permitAll()
                 )
                 .logout(logout -> logout.permitAll());
