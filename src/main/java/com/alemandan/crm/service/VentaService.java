@@ -49,10 +49,12 @@ public class VentaService {
         return null; // null = venta exitosa
     }
 
+    // Buscar ventas por usuario
     public List<Venta> obtenerVentasPorUsuario(Long usuarioId) {
         return ventaRepository.findByUsuarioId(usuarioId);
     }
 
+    // Filtrar ventas
     public List<Venta> filtrarVentas(Long usuarioId, String fechaInicio, String fechaFin, Long productoId, String metodoPago) {
         List<Venta> ventas = ventaRepository.findByUsuarioId(usuarioId);
 

@@ -8,6 +8,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.http.HttpMethod;
 
 @Configuration
 public class SecurityConfig {
@@ -34,6 +35,8 @@ public class SecurityConfig {
         http
                 .authenticationProvider(authenticationProvider())
                 .authorizeHttpRequests(auth -> auth
+                        // Permite POST al endpoint de exportar gráfica a PDF
+                        .requestMatchers(HttpMethod.POST, "/admin/ventas/exportar-grafico-pdf").permitAll()
                         // Acceso público
                         .requestMatchers("/login", "/usuarios/nuevo", "/usuarios/guardar", "/css/**", "/js/**").permitAll()
                         // Dashboard general (redirigido según rol)
@@ -45,6 +48,8 @@ public class SecurityConfig {
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
+                // Desactiva CSRF para evitar bloqueos con fetch POST desde JS
+                .csrf(csrf -> csrf.ignoringRequestMatchers("/admin/ventas/exportar-grafico-pdf"))
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/dashboard", true)

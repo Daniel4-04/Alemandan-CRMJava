@@ -14,7 +14,6 @@ public class UsuarioService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-
     // Guardar un usuario
     public Usuario saveUsuario(Usuario usuario) {
         return usuarioRepository.save(usuario);
@@ -39,10 +38,12 @@ public class UsuarioService {
         return usuarioRepository.findByEmail(email);
     }
 
-
+    // Listar todos los usuarios activos
     public List<Usuario> getAllUsuarios() {
         return usuarioRepository.findByActivoTrue();
     }
+
+    // Inactivar usuario (eliminación lógica)
     public void inactivarUsuario(Long id) {
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
         if (usuarioOpt.isPresent()) {
@@ -50,9 +51,15 @@ public class UsuarioService {
             usuario.setActivo(false);
             usuarioRepository.save(usuario);
         }
-
     }
+
+    // Verificar existencia por email
     public boolean existeUsuarioPorEmail(String email) {
         return usuarioRepository.findByEmail(email) != null;
+    }
+
+    // Listar empleados (para filtros de ventas admin)
+    public List<Usuario> listarEmpleados() {
+        return usuarioRepository.findByRolAndActivoTrue("EMPLEADO");
     }
 }

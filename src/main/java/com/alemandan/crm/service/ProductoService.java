@@ -14,8 +14,14 @@ public class ProductoService {
     @Autowired
     private ProductoRepository productoRepository;
 
+    // Listar solo productos activos
     public List<Producto> getAllProductos() {
-        return productoRepository.findByActivoTrue(); // solo activos
+        return productoRepository.findByActivoTrue();
+    }
+
+    // Listar todos los productos (para filtros admin)
+    public List<Producto> listarProductos() {
+        return productoRepository.findAll();
     }
 
     public Producto saveProducto(Producto producto) {

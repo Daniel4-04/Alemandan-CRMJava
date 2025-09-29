@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Reporte de Ventas - Administrador</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<h1>Reporte de Ventas - Administrador</h1>
+<form method="get" th:action="@{/admin/ventas}">
+    <label>Fecha inicio:</label>
+    <input type="date" name="fechaInicio" th:value="${param.fechaInicio}" />
+    <label>Fecha fin:</label>
+    <input type="date" name="fechaFin" th:value="${param.fechaFin}" />
+    <label>Empleado:</label>
+    <select name="usuarioId">
+        <option value="">Todos</option>
+        <option th:each="e : ${empleados}" th:value="${e.id}" th:text="${e.nombre}"></option>
+    </select>
+    <label>Producto:</label>
+    <select name="productoId">
+        <option value="">Todos</option>
+        <option th:each="p : ${productos}" th:value="${p.id}" th:text="${p.nombre}"></option>
+    </select>
+    <label>Método de pago:</label>
+    <select name="metodoPago">
+        <option value="">Todos</option>
+        <option value="Efectivo">Efectivo</option>
+        <option value="Tarjeta">Tarjeta</option>
+        <option value="Transferencia">Transferencia</option>
+    </select>
+    <button type="submit">Filtrar</button>
+    <a th:href="@{/admin/ventas/exportar-pdf(
+            fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
+        )}">Exportar tabla PDF</a>
+    <a th:href="@{/admin/ventas/exportar-excel(
+            fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
+        )}">Exportar tabla Excel</a>
+</form>
+
+<table border="1">
+    <tr>
+        <th>ID</th>
+        <th>Fecha</th>
+        <th>Empleado</th>
+        <th>Método de pago</th>
+        <th>Total</th>
+        <th>Productos</th>
+    </tr>
+    <tr th:each="v : ${ventas}">
+        <td th:text="${v.id}"></td>
+        <td th:text="${v.fecha}"></td>
+        <td th:text="${v.usuario.nombre}"></td>
+        <td th:text="${v.metodoPago}"></td>
+        <td th:text="${v.total}"></td>
+        <td>
+            <ul>
+                <li th:each="d : ${v.detalles}" th:text="${d.producto.nombre + ' ( ' + d.cantidad + ' x ' + d.precioUnitario + ' )'}"></li>
+            </ul>
+        </td>
+    </tr>
+</table>
+
+<h3>Gráfica de ventas por empleado</h3>
+<canvas id="chartVentasEmpleado" width="600" height="300"></canvas>
+<button id="exportChartPdf">Exportar gráfica a PDF</button>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // Prepara datos acumulados por empleado para la gráfica
+    var empleadosMap = {};
+    /*[# th:each="v : ${ventas}"]*/
+    var empleado = /*[[${v.usuario.nombre}]]*/ "";
+    var total = /*[[${v.total}]]*/ 0;
+    empleadosMap[empleado] = (empleadosMap[empleado] || 0) + total;
+    /*[/]*/
+    var labels = Object.keys(empleadosMap);
+    var data = Object.values(empleadosMap);
+
+    var ctx = document.getElementById('chartVentasEmpleado').getContext('2d');
+    var chartEmpleado = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Total ventas',
+                data: data,
+                backgroundColor: 'rgba(54, 162, 235, 0.5)'
+            }]
+        }
+    });
+
+    document.getElementById('exportChartPdf').onclick = function() {
+        var canvas = document.getElementById('chartVentasEmpleado');
+        var imgData = canvas.toDataURL('image/png');
+        var fechaActual = new Date().toLocaleString();
+        fetch('/admin/ventas/exportar-grafico-pdf', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ imgBase64: imgData, titulo: "Gráfica de ventas por empleado", fecha: fechaActual })
+        })
+            .then(response => {
+                if (!response.ok) {
+                    // Lee el texto del error enviado por el backend
+                    return response.text().then(text => {
+                        alert("Error al generar PDF:\n" + text);
+                        throw new Error(text);
+                    });
+                }
+                return response.blob();
+            })
+            .then(blob => {
+                var link = document.createElement('a');
+                link.href = window.URL.createObjectURL(blob);
+                link.download = "grafico_ventas.pdf";
+                link.click();
+            })
+            .catch(error => {
+                // En caso de error JS, muestra el mensaje
+                alert("ERROR JS: " + error.message);
+            });
+    };
+    /*]]>*/
+
+</script>
+<a href="/dashboard">Volver al dashboard</a>
+</body>
+</html>
