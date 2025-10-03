@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Solicitudes de Registro</title>
+</head>
+<body>
+<h1>Solicitudes de registro pendientes</h1>
+<table>
+    <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Fecha</th>
+        <th>Acciones</th>
+    </tr>
+    <tr th:each="solicitud : ${solicitudes}">
+        <td th:text="${solicitud.nombre}"></td>
+        <td th:text="${solicitud.email}"></td>
+        <td th:text="${solicitud.fechaSolicitud}"></td>
+        <td>
+            <form th:action="@{'/admin/solicitudes/aprobar/' + ${solicitud.id}}" method="post">
+                <button type="submit">Aprobar</button>
+            </form>
+            <form th:action="@{'/admin/solicitudes/rechazar/' + ${solicitud.id}}" method="post">
+                <button type="submit">Rechazar</button>
+            </form>
+        </td>
+    </tr>
+</table>
+</body>
+</html>

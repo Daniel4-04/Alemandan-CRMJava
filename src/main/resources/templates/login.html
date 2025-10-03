@@ -1,24 +1,166 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Iniciar sesión</title>
-    <meta charset="UTF-8" />
+    <meta charset="UTF-8">
+    <title>Login / Registro | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/assets/css/style.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/login.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        .error-message {
+            color: #e53935;
+            font-size: 1em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+        .success-message {
+            color: #43a047;
+            font-size: 1em;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-<h1>Iniciar sesión</h1>
-<form th:action="@{/login}" method="post">
-    <label for="username">Email:</label>
-    <input type="text" id="username" name="username" required />
-    <br />
+<!-- Header profesional -->
+<header class="header">
+    <nav class="navbar">
+        <div class="logo-container">
+            <a th:href="@{/}">
+                <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="logo bounce-in">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a th:href="@{/}" class="nav-link">Inicio</a></li>
+            <li><a th:href="@{/#features}" class="nav-link">Características</a></li>
+            <li><a th:href="@{/#about}" class="nav-link">Sobre Nosotros</a></li>
+        </ul>
+    </nav>
+</header>
 
-    <label for="password">Contraseña:</label>
-    <input type="password" id="password" name="password" required />
-    <br />
+<!-- Login/Register corredizo -->
+<main>
+    <div class="login-register-wrapper">
+        <div class="login-register-slider">
+            <!-- Login Form -->
+            <form class="form login-form" th:action="@{/login}" method="post" autocomplete="on" id="loginForm">
+                <h2>Iniciar Sesión</h2>
+                <input type="text" name="username" placeholder="Usuario o Email" required>
+                <input type="password" name="password" placeholder="Contraseña" required>
+                <div id="loginErrorJS" class="error-message" style="display:none;"></div>
+                <button type="submit" class="cta-btn">Ingresar</button>
+                <p>¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a></p>
+            </form>
+            <!-- Register Form -->
+            <form class="form register-form" th:action="@{/registro}" method="post" autocomplete="on" id="registerForm">
+                <h2>Solicitar Registro</h2>
+                <input type="text" name="nombre" placeholder="Nombre completo" required>
+                <input type="email" name="email" placeholder="Correo electrónico" required>
+                <input type="password" name="password" id="regPassword" placeholder="Contraseña" required minlength="5">
+                <input type="password" name="confirmPassword" id="regConfirmPassword" placeholder="Confirmar Contraseña" required minlength="5">
+                <!-- Mostrar error del backend -->
+                <div th:if="${registroError}" class="error-message" th:text="${registroError}"></div>
+                <!-- Mostrar mensaje de éxito -->
+                <div th:if="${mensaje}" class="success-message" th:text="${mensaje}"></div>
+                <!-- Error JS -->
+                <div id="registerErrorJS" class="error-message" style="display:none;"></div>
+                <button type="submit" class="cta-btn">Solicitar registro</button>
+                <p>¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión</a></p>
+            </form>
+        </div>
+    </div>
+    <!-- Elemento para detectar mensaje de éxito -->
+    <div id="registroExito" th:if="${mensaje}" style="display:none"></div>
+</main>
 
-    <button type="submit">Entrar</button>
-</form>
-<div th:if="${param.error}">
-    <p style="color: red;">Usuario o contraseña incorrectos</p>
-</div>
+<!-- Footer profesional -->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-logo">
+            <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo">
+        </div>
+        <div class="footer-links">
+            <a th:href="@{/}">Inicio</a>
+            <a th:href="@{/#features}">Características</a>
+            <a th:href="@{/#about}">Sobre Nosotros</a>
+        </div>
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-whatsapp"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+        <div class="footer-contact">
+            <div><i class="fas fa-phone"></i> +57 123 456 7890</div>
+            <div><i class="fas fa-map-marker-alt"></i> Bogotá, Colombia</div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2025 Alemandan. Todos los derechos reservados.</p>
+    </div>
+</footer>
+
+<!-- JS para animación corrediza y validaciones -->
+<script>
+    const wrapper = document.querySelector('.login-register-slider');
+    // Detectar si hay mensaje de éxito y mostrar registro
+    if (document.getElementById('registroExito')) {
+        wrapper.classList.add('slide-left');
+        wrapper.classList.remove('slide-right');
+    } else {
+        wrapper.classList.add('slide-right');
+        wrapper.classList.remove('slide-left');
+    }
+    document.getElementById('show-register').onclick = (e) => {
+        e.preventDefault();
+        wrapper.classList.add('slide-left');
+        wrapper.classList.remove('slide-right');
+        document.getElementById('registerErrorJS').style.display = "none";
+        document.getElementById('loginErrorJS').style.display = "none";
+    };
+    document.getElementById('show-login').onclick = (e) => {
+        e.preventDefault();
+        wrapper.classList.add('slide-right');
+        wrapper.classList.remove('slide-left');
+        document.getElementById('registerErrorJS').style.display = "none";
+        document.getElementById('loginErrorJS').style.display = "none";
+    };
+
+    // Validación JS para registro
+    document.getElementById('registerForm').onsubmit = function(e) {
+        const pass = document.getElementById('regPassword').value;
+        const pass2 = document.getElementById('regConfirmPassword').value;
+        const errorDiv = document.getElementById('registerErrorJS');
+        errorDiv.style.display = "none";
+        if(pass.length < 5 || pass2.length < 5){
+            errorDiv.textContent = "La contraseña debe tener al menos 5 caracteres.";
+            errorDiv.style.display = "block";
+            e.preventDefault();
+            return false;
+        }
+        if(pass !== pass2){
+            errorDiv.textContent = "Las contraseñas no coinciden.";
+            errorDiv.style.display = "block";
+            e.preventDefault();
+            return false;
+        }
+        return true;
+    };
+
+    // Validación básica JS para login
+    document.getElementById('loginForm').onsubmit = function(e) {
+        const user = this.username.value.trim();
+        const pass = this.password.value.trim();
+        const errorDiv = document.getElementById('loginErrorJS');
+        errorDiv.style.display = "none";
+        if(!user || !pass){
+            errorDiv.textContent = "Debes llenar ambos campos.";
+            errorDiv.style.display = "block";
+            e.preventDefault();
+            return false;
+        }
+        return true;
+    };
+</script>
 </body>
 </html>

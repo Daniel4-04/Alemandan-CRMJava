@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Alemandan CRM</title>
+    <link rel="stylesheet" th:href="@{/assets/css/style.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<!-- Header -->
+<header class="header">
+    <nav class="navbar">
+        <div class="logo-container">
+            <a th:href="@{/}">
+                <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="logo bounce-in">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#features" class="nav-link">Características</a></li>
+            <li><a href="#about" class="nav-link">Sobre Nosotros</a></li>
+            <li><a th:href="@{/login}" class="nav-link login-btn pulse">Ingresar <i class="fas fa-sign-in-alt"></i></a></li>
+        </ul>
+    </nav>
+    <div class="hero">
+        <h1 class="fade-in-down">¡Gestiona con datos, no con dudas!</h1>
+        <h2 class="fade-in-up">Un CRM que evoluciona contigo</h2>
+        <div class="cta-container">
+            <a th:href="@{/login}" class="cta-btn glow">Accede al CRM</a>
+        </div>
+    </div>
+</header>
+
+<!-- Main Content -->
+<main>
+    <section class="features" id="features">
+        <h3 class="section-title reveal">¿Por qué Alemandan CRM?</h3>
+        <div class="features-grid">
+            <div class="feature-card lift">
+                <i class="fas fa-user-shield fa-2x"></i>
+                <h4>Gestión Segura de Usuarios</h4>
+                <p>Administra roles, solicitudes y accesos con total seguridad y facilidad.</p>
+            </div>
+            <div class="feature-card lift">
+                <i class="fas fa-envelope fa-2x"></i>
+                <h4>Notificaciones y Correos</h4>
+                <p>Envío automático de correos para registro, aprobación y recuperación.</p>
+            </div>
+            <div class="feature-card lift">
+                <i class="fas fa-file-pdf fa-2x"></i>
+                <h4>Reportes en PDF</h4>
+                <p>Exporta reportes de ventas y gráficos en PDF de manera instantánea.</p>
+            </div>
+            <div class="feature-card lift">
+                <i class="fas fa-lock fa-2x"></i>
+                <h4>Recuperación de Contraseña</h4>
+                <p>Permite a los usuarios restablecer su acceso de forma fácil y segura desde cualquier dispositivo.</p>
+            </div>
+            <div class="feature-card lift">
+                <i class="fas fa-chart-line fa-2x"></i>
+                <h4>Paneles Personalizados</h4>
+                <p>Dashboards intuitivos para administradores y empleados, con acceso a reportes y ventas.</p>
+            </div>
+            <div class="feature-card lift">
+                <i class="fas fa-headset fa-2x"></i>
+                <h4>Soporte y Actualizaciones</h4>
+                <p>Contamos con soporte dedicado y el sistema siempre evoluciona con nuevas mejoras.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="about" id="about">
+        <h3 class="section-title reveal">Sobre Alemandan</h3>
+        <div class="about-content centered-about">
+            <div class="about-text fade-in-up">
+                <p>
+                    Alemandan CRM te ayuda a transformar la gestión de tu negocio con una plataforma robusta, intuitiva y segura.
+                </p>
+                <!-- Swap Cylinder Features -->
+                <div class="swap-cylinder">
+                    <div class="swap-feature"><i class="fas fa-check"></i> Interfaz amigable y moderna</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Acceso seguro desde cualquier lugar</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Soporte dedicado</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Gestión de ventas y reportes</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Control total de usuarios y roles</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Integración con reportes en PDF</div>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- Footer -->
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-logo">
+            <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo">
+        </div>
+        <div class="footer-links">
+            <a href="#">Inicio</a>
+            <a href="#features">Características</a>
+            <a href="#about">Sobre Nosotros</a>
+            <a th:href="@{/login}">Ingresar</a>
+        </div>
+        <div class="footer-social">
+            <a href="#"><i class="fab fa-twitter"></i></a>
+            <a href="#"><i class="fab fa-whatsapp"></i></a>
+            <a href="#"><i class="fab fa-instagram"></i></a>
+        </div>
+        <div class="footer-contact">
+            <div><i class="fas fa-phone"></i> +57 123 456 7890</div>
+            <div><i class="fas fa-map-marker-alt"></i> Bogotá, Colombia</div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2025 Alemandan. Todos los derechos reservados.</p>
+    </div>
+</footer>
+
+<!-- Animaciones JS -->
+<script>
+    // Animaciones reveal al hacer scroll
+    function reveal() {
+        let reveals = document.querySelectorAll('.reveal');
+        for (let i = 0; i < reveals.length; i++) {
+            let windowHeight = window.innerHeight;
+            let elementTop = reveals[i].getBoundingClientRect().top;
+            let elementVisible = 150;
+            if (elementTop < windowHeight - elementVisible) {
+                reveals[i].classList.add('active');
+            } else {
+                reveals[i].classList.remove('active');
+            }
+        }
+    }
+    window.addEventListener('scroll', reveal);
+    window.addEventListener('load', reveal);
+
+    // Swap/cylinder animation for features: always visible, only highlight
+    let swapIndex = 0;
+    const swapFeatures = document.querySelectorAll('.swap-cylinder .swap-feature');
+    function swapCylinder() {
+        swapFeatures.forEach((el, i) => {
+            el.style.opacity = (i === swapIndex) ? '1' : '0.85';
+            el.style.transform = (i === swapIndex) ? 'scale(1.1)' : 'scale(1)';
+            el.style.background = (i === swapIndex) ? 'linear-gradient(90deg,#307ae8 0%, #ffd166 100%)' : 'linear-gradient(90deg,#e3eafc 0%,#f6f9ff 100%)';
+            el.style.color = (i === swapIndex) ? '#fff' : '#307ae8';
+            el.style.boxShadow = (i === swapIndex) ? '0 2px 14px #307ae855' : '0 1px 8px #307ae811';
+        });
+        swapIndex = (swapIndex + 1) % swapFeatures.length;
+    }
+    setInterval(swapCylinder, 1800);
+    swapCylinder();
+</script>
+</body>
+</html>

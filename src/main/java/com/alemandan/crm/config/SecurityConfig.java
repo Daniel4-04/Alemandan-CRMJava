@@ -38,7 +38,20 @@ public class SecurityConfig {
                         // Permite POST al endpoint de exportar gráfica a PDF
                         .requestMatchers(HttpMethod.POST, "/admin/ventas/exportar-grafico-pdf").permitAll()
                         // Acceso público
-                        .requestMatchers("/login", "/usuarios/nuevo", "/usuarios/guardar", "/css/**", "/js/**").permitAll()
+                        .requestMatchers(
+                                "/",               // <-- La raíz ahora también es pública
+                                "/index",          // <-- Permite acceder a /index y / directamente
+                                "/login",
+                                "/usuarios/nuevo",
+                                "/usuarios/guardar",
+                                "/registro",
+                                "/recuperar",
+                                "/reset-password",
+                                "/css/**",
+                                "/js/**",
+                                "/assets/**",
+                                "/images/**"
+                        ).permitAll()
                         // Dashboard general (redirigido según rol)
                         .requestMatchers("/dashboard").authenticated()
                         // Módulos solo para ADMIN

@@ -1,0 +1,96 @@
+.login-register-wrapper {
+    width: 400px;
+    max-width: 95vw;
+    margin: 60px auto 70px auto;
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 6px 32px #2048c644;
+    overflow: hidden;
+    position: relative;
+}
+
+.login-register-slider {
+    display: flex;
+    width: 800px;
+    transition: transform 0.6s cubic-bezier(.39,.575,.565,1);
+    will-change: transform;
+}
+
+.form {
+    width: 400px;
+    padding: 44px 30px 30px 30px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    align-items: center;
+}
+.form h2 {
+    color: #2048c6;
+    font-size: 1.7em;
+    margin-bottom: 14px;
+}
+.form input {
+    width: 90%;
+    padding: 13px 16px;
+    border-radius: 10px;
+    border: 1.5px solid #2048c6;
+    font-size: 1em;
+    outline: none;
+    background: #f5f7fa;
+    transition: border-color 0.2s;
+}
+.form input:focus {
+    border-color: #ff9800;
+}
+.form button.cta-btn {
+    width: 90%;
+    margin-top: 8px;
+    background: #ff9800;
+    color: #fff;
+    font-weight: bold;
+    border: none;
+    cursor: pointer;
+    font-size: 1.05em;
+    border-radius: 30px;
+    padding: 13px 0;
+    box-shadow: 0 2px 12px #2048c633;
+    transition: background 0.2s;
+}
+.form button.cta-btn:hover {
+    background: #2048c6;
+    color: #fff;
+}
+.form p {
+    margin-top: 10px;
+    font-size: 1em;
+    color: #2048c6;
+}
+.form a {
+    color: #ff9800;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.form a:hover {
+    color: #2048c6;
+    text-decoration: underline;
+}
+.login-register-slider.slide-left {
+    transform: translateX(-400px);
+}
+.login-register-slider.slide-right {
+    transform: translateX(0px);
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .login-register-wrapper, .form {
+        width: 95vw;
+        min-width: 0;
+        padding: 20px 8px;
+    }
+    .login-register-slider {
+        width: 190vw;
+    }
+}

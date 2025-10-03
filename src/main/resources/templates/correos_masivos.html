@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Correo masivo</title>
+    <meta charset="UTF-8">
+</head>
+<body>
+<h1>Enviar correo</h1>
+<form method="post" th:action="@{/admin/correos-masivos}">
+    <label>Asunto:</label>
+    <input type="text" name="asunto" required><br><br>
+    <label>Mensaje:</label><br>
+    <textarea name="mensaje" rows="6" cols="50" required></textarea><br><br>
+    <label>Destinatarios:</label><br>
+    <div th:each="usuario : ${usuarios}">
+        <input type="checkbox" name="destinatarios" th:value="${usuario.id}">
+        <span th:text="${usuario.email}"></span> (<span th:text="${usuario.nombre}"></span>)<br>
+    </div>
+    <br>
+    <button type="submit">Enviar correos</button>
+</form>
+<div th:if="${mensaje}" style="color:green;" th:text="${mensaje}"></div>
+<div th:if="${error}" style="color:red;" th:text="${error}"></div>
+</body>
+</html>
