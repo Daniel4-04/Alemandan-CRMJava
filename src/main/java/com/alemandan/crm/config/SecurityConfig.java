@@ -39,8 +39,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/admin/ventas/exportar-grafico-pdf").permitAll()
                         // Acceso público
                         .requestMatchers(
-                                "/",               // <-- La raíz ahora también es pública
-                                "/index",          // <-- Permite acceder a /index y / directamente
+                                "/",
+                                "/index",
                                 "/login",
                                 "/usuarios/nuevo",
                                 "/usuarios/guardar",
@@ -55,13 +55,12 @@ public class SecurityConfig {
                         // Dashboard general (redirigido según rol)
                         .requestMatchers("/dashboard").authenticated()
                         // Módulos solo para ADMIN
-                        .requestMatchers("/usuarios/**", "/productos/**", "/proveedores/**", "/dashboard-admin", "/dashboard-admin/**").hasRole("ADMIN")
+                        .requestMatchers("/usuarios/**", "/productos/**", "/proveedores/**", "/dashboard-admin", "/dashboard-admin/**").hasAuthority("ADMIN")
                         // Módulos solo para EMPLEADO
-                        .requestMatchers("/ventas/caja", "/ventas/caja/**", "/ventas/registrar", "/ventas/mis-ventas", "/dashboard-empleado", "/dashboard-empleado/**").hasRole("EMPLEADO")
+                        .requestMatchers("/ventas/caja", "/ventas/caja/**", "/ventas/registrar", "/ventas/mis-ventas", "/dashboard-empleado", "/dashboard-empleado/**").hasAuthority("EMPLEADO")
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
-                // Desactiva CSRF para evitar bloqueos con fetch POST desde JS
                 .csrf(csrf -> csrf.ignoringRequestMatchers("/admin/ventas/exportar-grafico-pdf"))
                 .formLogin(form -> form
                         .loginPage("/login")

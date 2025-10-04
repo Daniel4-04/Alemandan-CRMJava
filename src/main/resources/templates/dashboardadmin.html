@@ -1,18 +1,84 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Dashboard Administrador</title>
+    <meta charset="UTF-8">
+    <title>Dashboard Administrador | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/assets/css/dashboard_admin.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<h1>Bienvenido, Administrador</h1>
-<nav>
-    <ul>
-        <li><a href="/usuarios">Gestionar usuarios</a></li>
-        <li><a href="/productos">Gestionar productos / inventario</a></li>
-        <li><a href="/proveedores">Gestión de Proveedores</a></li>
-        <li><a href="/admin/ventas">Gestión de Ventas</a></li>
-        <li><a href="/admin/correos-masivos">Enviar correos</a></li>
-    </ul>
-</nav>
+<!-- Header superior con logo fijo y acciones a la derecha -->
+<header class="admin-header">
+    <div class="header-left">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="admin-logo" id="logoBtn" title="Menú">
+        <span class="admin-title">ADMINISTRADOR</span>
+    </div>
+    <div class="header-actions">
+        <a href="/admin/correos-masivos" class="header-btn"><i class="fas fa-envelope"></i> Enviar correos</a>
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        </form>
+    </div>
+</header>
+
+<!-- Panel lateral ocultable, inicia debajo del header -->
+<aside class="sidebar hide" id="sidebar">
+    <nav>
+        <ul>
+            <li><a href="/usuarios"><i class="fas fa-users"></i> Usuarios</a></li>
+            <li><a href="/productos"><i class="fas fa-boxes"></i> Productos / Inventario</a></li>
+            <li><a href="/proveedores"><i class="fas fa-truck"></i> Proveedores</a></li>
+            <li><a href="/admin/ventas"><i class="fas fa-shopping-cart"></i> Ventas</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<!-- Main dashboard, caja estática centrada -->
+<main class="dashboard-main">
+    <section class="admin-profile">
+        <div class="profile-info">
+            <div class="profile-img-container">
+                <img th:src="@{/assets/img/admin_profile.jpg}" alt="Admin Perfil" class="profile-img">
+                <span class="profile-role"><i class="fas fa-crown"></i></span>
+            </div>
+            <div class="profile-details">
+                <h2 th:text="${admin.nombre}">Administrador</h2>
+                <div class="profile-contact">
+                    <span><i class="fas fa-envelope"></i> <span th:text="${admin.email}">admin@alemandan.com</span></span>
+                </div>
+            </div>
+        </div>
+        <div class="profile-resumen">
+            <div class="resumen-item">
+                <span class="resumen-title">Empleados</span>
+                <span class="resumen-value" th:text="${totalEmpleados}">24</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-title">Proveedores</span>
+                <span class="resumen-value" th:text="${totalProveedores}">12</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-title">Productos inventario</span>
+                <span class="resumen-value" th:text="${totalProductos}">120</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-title">Ventas del día</span>
+                <span class="resumen-value" th:text="${totalVentasDia}">15</span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- No hay footer -->
+
+<!-- JS para mostrar/ocultar sidebar al hacer clic en el logo -->
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const logoBtn = document.getElementById('logoBtn');
+    logoBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hide');
+    });
+</script>
 </body>
 </html>

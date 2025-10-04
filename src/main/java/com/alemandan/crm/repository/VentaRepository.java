@@ -23,4 +23,7 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
                              @Param("usuarioId") Long usuarioId,
                              @Param("productoId") Long productoId,
                              @Param("metodoPago") String metodoPago);
+
+    @Query("SELECT COUNT(v) FROM Venta v WHERE v.fecha >= :inicio AND v.fecha < :fin")
+    long countByFechaBetween(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 }

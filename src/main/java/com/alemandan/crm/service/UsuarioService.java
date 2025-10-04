@@ -62,4 +62,14 @@ public class UsuarioService {
     public List<Usuario> listarEmpleados() {
         return usuarioRepository.findByRolAndActivoTrue("EMPLEADO");
     }
+
+    // Obtener el total de empleados activos
+    public long countEmpleados() {
+        return usuarioRepository.countByRolAndActivoTrue("EMPLEADO");
+    }
+
+    // Obtener el total por rol (útil para admins, empleados, etc.)
+    public long countPorRol(String rol) {
+        return usuarioRepository.countByRolAndActivoTrue(rol);
+    }
 }

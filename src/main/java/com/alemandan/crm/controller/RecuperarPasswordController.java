@@ -28,15 +28,18 @@ public class RecuperarPasswordController {
 
     @GetMapping("/recuperar")
     public String mostrarFormularioRecuperar(Model model) {
-        return "recuperar_password";
+        // Solo mostrar el formulario integrado en login.html
+        return "login";
     }
 
     @PostMapping("/recuperar")
     public String procesarRecuperar(@RequestParam String email, Model model) {
         Usuario usuario = usuarioRepo.findByEmail(email);
         if (usuario == null) {
-            model.addAttribute("error", "No existe usuario con ese correo.");
-            return "recuperar_password";
+            model.addAttribute("recuperarError", "No existe usuario con ese correo.");
+            // Mantener el slide de recuperar activo
+            model.addAttribute("showRecuperar", true);
+            return "login";
         }
 
         // Generar token
@@ -52,8 +55,10 @@ public class RecuperarPasswordController {
         String link = "http://localhost:8080/reset-password?token=" + token;
         mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
 
-        model.addAttribute("mensaje", "Se ha enviado un enlace de recuperación a tu correo.");
-        return "recuperar_password";
+        model.addAttribute("recuperarMensaje", "Se ha enviado un enlace de recuperación a tu correo.");
+        // Mantener el slide de recuperar activo
+        model.addAttribute("showRecuperar", true);
+        return "login";
     }
 
     @GetMapping("/reset-password")

@@ -7,5 +7,7 @@ import java.util.List;
 public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
     Usuario findByEmail(String email);
     List<Usuario> findByActivoTrue();
-    List<Usuario> findByRolAndActivoTrue(String rol); // Para listar empleados activos
+    List<Usuario> findByRolAndActivoTrue(String rol);
+
+    long countByRolAndActivoTrue(String rol); // Para contar empleados activos o cualquier rol
 }

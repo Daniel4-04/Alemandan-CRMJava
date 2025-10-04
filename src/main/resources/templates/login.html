@@ -39,10 +39,10 @@
     </nav>
 </header>
 
-<!-- Login/Register corredizo -->
+<!-- Login/Register/Recuperar corredizo -->
 <main>
     <div class="login-register-wrapper">
-        <div class="login-register-slider">
+        <div class="login-register-slider" style="width:1200px;">
             <!-- Login Form -->
             <form class="form login-form" th:action="@{/login}" method="post" autocomplete="on" id="loginForm">
                 <h2>Iniciar Sesión</h2>
@@ -50,6 +50,9 @@
                 <input type="password" name="password" placeholder="Contraseña" required>
                 <div id="loginErrorJS" class="error-message" style="display:none;"></div>
                 <button type="submit" class="cta-btn">Ingresar</button>
+                <p>
+                    <a href="#" id="show-recuperar" style="color:#2048c6; font-weight:bold;">¿Olvidaste tu contraseña?</a>
+                </p>
                 <p>¿No tienes cuenta? <a href="#" id="show-register">Regístrate</a></p>
             </form>
             <!-- Register Form -->
@@ -68,10 +71,23 @@
                 <button type="submit" class="cta-btn">Solicitar registro</button>
                 <p>¿Ya tienes cuenta? <a href="#" id="show-login">Inicia sesión</a></p>
             </form>
+            <!-- Recuperar contraseña Form -->
+            <form class="form recuperar-form" th:action="@{/recuperar}" method="post" autocomplete="on" id="recuperarForm">
+                <h2>Recuperar Contraseña</h2>
+                <input type="email" name="email" placeholder="Ingresa tu correo electrónico" required>
+                <!-- Mostrar error y éxito backend -->
+                <div th:if="${recuperarError}" class="error-message" th:text="${recuperarError}"></div>
+                <div th:if="${recuperarMensaje}" class="success-message" th:text="${recuperarMensaje}"></div>
+                <!-- Error JS -->
+                <div id="recuperarErrorJS" class="error-message" style="display:none;"></div>
+                <button type="submit" class="cta-btn">Enviar instrucciones</button>
+                <p><a href="#" id="show-login2">Volver a iniciar sesión</a></p>
+            </form>
         </div>
     </div>
     <!-- Elemento para detectar mensaje de éxito -->
     <div id="registroExito" th:if="${mensaje}" style="display:none"></div>
+    <div id="recuperarExito" th:if="${recuperarMensaje}" style="display:none"></div>
 </main>
 
 <!-- Footer profesional -->
@@ -103,27 +119,56 @@
 <!-- JS para animación corrediza y validaciones -->
 <script>
     const wrapper = document.querySelector('.login-register-slider');
-    // Detectar si hay mensaje de éxito y mostrar registro
+    // Detecta si hay mensaje de éxito y muestra la vista correcta
     if (document.getElementById('registroExito')) {
         wrapper.classList.add('slide-left');
+        wrapper.classList.remove('slide-right');
+        wrapper.classList.remove('slide-recover');
+    } else if (document.getElementById('recuperarExito')) {
+        wrapper.classList.add('slide-recover');
+        wrapper.classList.remove('slide-left');
         wrapper.classList.remove('slide-right');
     } else {
         wrapper.classList.add('slide-right');
         wrapper.classList.remove('slide-left');
+        wrapper.classList.remove('slide-recover');
     }
+    // Navegación entre formularios
     document.getElementById('show-register').onclick = (e) => {
         e.preventDefault();
         wrapper.classList.add('slide-left');
         wrapper.classList.remove('slide-right');
+        wrapper.classList.remove('slide-recover');
         document.getElementById('registerErrorJS').style.display = "none";
         document.getElementById('loginErrorJS').style.display = "none";
+        document.getElementById('recuperarErrorJS').style.display = "none";
     };
     document.getElementById('show-login').onclick = (e) => {
         e.preventDefault();
         wrapper.classList.add('slide-right');
         wrapper.classList.remove('slide-left');
+        wrapper.classList.remove('slide-recover');
         document.getElementById('registerErrorJS').style.display = "none";
         document.getElementById('loginErrorJS').style.display = "none";
+        document.getElementById('recuperarErrorJS').style.display = "none";
+    };
+    document.getElementById('show-login2').onclick = (e) => {
+        e.preventDefault();
+        wrapper.classList.add('slide-right');
+        wrapper.classList.remove('slide-left');
+        wrapper.classList.remove('slide-recover');
+        document.getElementById('registerErrorJS').style.display = "none";
+        document.getElementById('loginErrorJS').style.display = "none";
+        document.getElementById('recuperarErrorJS').style.display = "none";
+    };
+    document.getElementById('show-recuperar').onclick = (e) => {
+        e.preventDefault();
+        wrapper.classList.add('slide-recover');
+        wrapper.classList.remove('slide-left');
+        wrapper.classList.remove('slide-right');
+        document.getElementById('registerErrorJS').style.display = "none";
+        document.getElementById('loginErrorJS').style.display = "none";
+        document.getElementById('recuperarErrorJS').style.display = "none";
     };
 
     // Validación JS para registro
@@ -147,7 +192,7 @@
         return true;
     };
 
-    // Validación básica JS para login
+    // Validación JS para login
     document.getElementById('loginForm').onsubmit = function(e) {
         const user = this.username.value.trim();
         const pass = this.password.value.trim();
@@ -161,6 +206,54 @@
         }
         return true;
     };
+
+    // Validación JS para recuperar
+    document.getElementById('recuperarForm').onsubmit = function(e) {
+        const email = this.email.value.trim();
+        const errorDiv = document.getElementById('recuperarErrorJS');
+        errorDiv.style.display = "none";
+        if(!email || !/^[\w\.-]+@[\w\.-]+\.\w{2,}$/.test(email)){
+            errorDiv.textContent = "Ingresa un correo electrónico válido.";
+            errorDiv.style.display = "block";
+            e.preventDefault();
+            return false;
+        }
+        return true;
+    };
 </script>
+<!-- Estilos para el slider de 3 formularios -->
+<style>
+    .login-register-slider {
+        display: flex;
+        transition: transform 0.6s cubic-bezier(.39,.575,.565,1);
+        will-change: transform;
+    }
+    .login-form, .register-form, .recuperar-form {
+        width: 400px;
+        min-width: 300px;
+        padding: 44px 30px 30px 30px;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+        align-items: center;
+    }
+    .login-register-slider.slide-left {
+        transform: translateX(-400px);
+    }
+    .login-register-slider.slide-right {
+        transform: translateX(0px);
+    }
+    .login-register-slider.slide-recover {
+        transform: translateX(-800px);
+    }
+    @media (max-width: 900px) {
+        .login-register-slider { width: 300vw; }
+        .login-form, .register-form, .recuperar-form { width: 95vw; min-width: 0; }
+        .login-register-slider.slide-left { transform: translateX(-95vw); }
+        .login-register-slider.slide-right { transform: translateX(0vw); }
+        .login-register-slider.slide-recover { transform: translateX(-190vw); }
+    }
+</style>
 </body>
 </html>

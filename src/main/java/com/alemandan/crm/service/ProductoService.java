@@ -50,4 +50,8 @@ public class ProductoService {
             productoRepository.save(producto);
         }
     }
+
+    public long countProductos() {
+        return productoRepository.count();
+    }
 }

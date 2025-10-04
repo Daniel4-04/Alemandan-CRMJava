@@ -6,5 +6,7 @@ import java.util.List;
 
 public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByActivoTrue();
-    List<Producto> findByNombreAndActivoFalse(String nombre);// Solo productos activos
+    List<Producto> findByNombreAndActivoFalse(String nombre);
+
+    long count(); // Para contar productos
 }

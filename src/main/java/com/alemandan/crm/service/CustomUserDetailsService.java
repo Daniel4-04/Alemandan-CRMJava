@@ -20,12 +20,12 @@ public class CustomUserDetailsService implements UserDetailsService {
         if (usuario == null) {
             throw new UsernameNotFoundException("Usuario no encontrado con email: " + email);
         }
-        // El rol debe ser "ADMIN" o "EMPLEADO" en la base de datos
-        // Se retorna como "ROLE_ADMIN" o "ROLE_EMPLEADO" para Spring Security
+
+        // Usar directamente el rol "ADMIN" o "EMPLEADO"
         return new org.springframework.security.core.userdetails.User(
                 usuario.getEmail(),
                 usuario.getPassword(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + usuario.getRol()))
+                Collections.singletonList(new SimpleGrantedAuthority(usuario.getRol()))
         );
     }
 }

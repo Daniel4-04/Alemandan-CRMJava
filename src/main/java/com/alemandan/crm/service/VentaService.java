@@ -77,4 +77,12 @@ public class VentaService {
         }
         return ventas;
     }
+
+    // Actualizado: conteo de ventas del día usando LocalDateTime
+    public long countVentasDelDia() {
+        LocalDate hoy = LocalDate.now();
+        LocalDateTime inicio = hoy.atStartOfDay();
+        LocalDateTime fin = hoy.plusDays(1).atStartOfDay();
+        return ventaRepository.countByFechaBetween(inicio, fin);
+    }
 }
