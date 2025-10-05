@@ -8,7 +8,6 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<!-- Header superior con logo fijo y acciones a la derecha -->
 <header class="empleado-header">
     <div class="header-left">
         <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="empleado-logo" id="logoBtn" title="Menú">
@@ -20,8 +19,6 @@
         </form>
     </div>
 </header>
-
-<!-- Panel lateral ocultable, inicia debajo del header -->
 <aside class="sidebar hide" id="sidebar">
     <nav>
         <ul>
@@ -30,8 +27,6 @@
         </ul>
     </nav>
 </aside>
-
-<!-- Main dashboard, caja estática centrada -->
 <main class="dashboard-main">
     <section class="empleado-profile">
         <div class="profile-info">
@@ -56,10 +51,17 @@
                 <span class="resumen-value" th:text="${totalMisVentas}">0</span>
             </div>
         </div>
+        <!-- Resumen del Web Service -->
+        <div class="webservice-resumen">
+            <h3>Resumen General de Ventas (Web Service)</h3>
+            <ul>
+                <li>Total Ventas: <span th:text="${resumenVentas.totalVentas}">0</span></li>
+                <li>Monto Total: <span th:text="${resumenVentas.montoTotal}">0</span></li>
+                <li>Fecha: <span th:text="${resumenVentas.fechaFormateada}">--</span></li>
+            </ul>
+        </div>
     </section>
 </main>
-
-<!-- JS para mostrar/ocultar sidebar al hacer clic en el logo -->
 <script>
     const sidebar = document.getElementById('sidebar');
     const logoBtn = document.getElementById('logoBtn');

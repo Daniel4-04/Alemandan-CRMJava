@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Permite POST al endpoint de exportar gráfica a PDF
                         .requestMatchers(HttpMethod.POST, "/admin/ventas/exportar-grafico-pdf").permitAll()
-                        // Acceso público (¡aquí están las páginas legales y ayuda!)
+                        // Acceso público (páginas legales y ayuda)
                         .requestMatchers(
                                 "/",
                                 "/index",
@@ -57,11 +57,13 @@ public class SecurityConfig {
                                 "/pqr",
                                 "/mapa"
                         ).permitAll()
+                        // El Web Service resumen puede ser consumido por cualquier usuario autenticado
+                        .requestMatchers("/api/ventas/resumen").authenticated()
                         // Dashboard general (redirigido según rol)
                         .requestMatchers("/dashboard").authenticated()
                         // Módulos solo para ADMIN
                         .requestMatchers("/usuarios/**", "/productos/**", "/proveedores/**", "/dashboard-admin", "/dashboard-admin/**").hasAuthority("ADMIN")
-                        // Módulos solo para EMPLEADO
+                        // Módulos solo para EMPLEADO (resto de /api/ventas/**)
                         .requestMatchers(
                                 "/ventas/caja", "/ventas/caja/**",
                                 "/ventas/registrar", "/ventas/mis-ventas",

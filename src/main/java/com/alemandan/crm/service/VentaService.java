@@ -10,7 +10,12 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -81,7 +86,7 @@ public class VentaService {
         return ventas;
     }
 
-    // Actualizado: conteo de ventas del día usando LocalDateTime
+    // Conteo de ventas del día usando LocalDateTime
     public long countVentasDelDia() {
         LocalDate hoy = LocalDate.now();
         LocalDateTime inicio = hoy.atStartOfDay();
@@ -89,7 +94,7 @@ public class VentaService {
         return ventaRepository.countByFechaBetween(inicio, fin);
     }
 
-    // NUEVO: ventas del día de un empleado
+    // Ventas del día de un empleado
     public long countVentasDelDiaEmpleado(Long empleadoId) {
         LocalDate hoy = LocalDate.now();
         LocalDateTime inicio = hoy.atStartOfDay();
@@ -97,8 +102,27 @@ public class VentaService {
         return ventaRepository.countByUsuarioIdAndFechaBetween(empleadoId, inicio, fin);
     }
 
-    // NUEVO: ventas totales de un empleado
+    // Ventas totales de un empleado
     public long countVentasTotalesEmpleado(Long empleadoId) {
         return ventaRepository.countByUsuarioId(empleadoId);
+    }
+
+    // NUEVO: resumen general de ventas para dashboard y web service
+    public Map<String, Object> getResumenVentas() {
+        Map<String, Object> resumen = new HashMap<>();
+        // Total de ventas
+        resumen.put("totalVentas", ventaRepository.count());
+        // Monto total de ventas
+        double montoTotal = ventaRepository.findAll()
+                .stream()
+                .mapToDouble(Venta::getTotal)
+                .sum();
+        resumen.put("montoTotal", montoTotal);
+
+        // Fecha actual en formato ISO8601 (string compatible con frontend y formateo)
+        OffsetDateTime fechaActual = OffsetDateTime.now(ZoneOffset.UTC);
+        resumen.put("fecha", fechaActual.toString());
+
+        return resumen;
     }
 }
