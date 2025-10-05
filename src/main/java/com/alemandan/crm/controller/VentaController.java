@@ -12,13 +12,15 @@ import com.alemandan.crm.util.ExcelReportUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/ventas")
@@ -33,7 +35,8 @@ public class VentaController {
 
     // Mostrar formulario de caja
     @GetMapping("/caja")
-    public String mostrarCaja(Model model, @RequestParam(value = "exito", required = false) String exito,
+    public String mostrarCaja(Model model, Authentication auth,
+                              @RequestParam(value = "exito", required = false) String exito,
                               @RequestParam(value = "error", required = false) String error) {
         List<Producto> productos = productoService.getAllProductos();
         model.addAttribute("productos", productos);
@@ -42,13 +45,20 @@ public class VentaController {
         venta.setDetalles(new ArrayList<>());
         model.addAttribute("venta", venta);
 
+        // Agregar el empleado logueado al modelo (para caja.html)
+        if (auth != null && auth.isAuthenticated()) {
+            String email = ((User)auth.getPrincipal()).getUsername();
+            Usuario empleado = usuarioService.findByEmail(email);
+            model.addAttribute("empleado", empleado);
+        }
+
         if ("true".equals(exito)) model.addAttribute("ventaExitosa", true);
         if (error != null && !error.isEmpty()) model.addAttribute("ventaError", error);
 
         return "ventas/caja";
     }
 
-    // Registrar venta (POST)
+    // Registrar venta (POST para formulario clásico)
     @PostMapping("/registrar")
     public String registrarVenta(@ModelAttribute Venta venta, Authentication auth) {
         String email = ((User)auth.getPrincipal()).getUsername();
@@ -61,6 +71,30 @@ public class VentaController {
         } else {
             return "redirect:/ventas/caja?error=" + error;
         }
+    }
+
+    // NUEVO: Registrar venta por AJAX (flujo moderno)
+    @PostMapping("/api/ventas/registrar")
+    @ResponseBody
+    public Map<String, Object> registrarVentaAjax(@RequestBody Venta venta, Authentication auth) {
+        Map<String, Object> resp = new HashMap<>();
+        try {
+            String email = ((User)auth.getPrincipal()).getUsername();
+            Usuario usuario = usuarioService.findByEmail(email);
+            venta.setUsuario(usuario);
+            String error = ventaService.registrarVenta(venta);
+            if (error == null) {
+                resp.put("success", true);
+                resp.put("ventaId", venta.getId());
+            } else {
+                resp.put("success", false);
+                resp.put("error", error);
+            }
+        } catch (Exception e) {
+            resp.put("success", false);
+            resp.put("error", "Error inesperado al registrar la venta: " + e.getMessage());
+        }
+        return resp;
     }
 
     // Historial de ventas con filtros

@@ -1,21 +1,74 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Agregar/Editar Proveedor</title>
+    <meta charset="UTF-8">
+    <title th:text="${proveedor.id == null ? 'Agregar Proveedor' : 'Editar Proveedor'}">Proveedor | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/assets/css/dashboard_admin.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/proveedores_panel.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/proveedores_form.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<h1 th:text="${proveedor.id == null ? 'Agregar Proveedor' : 'Editar Proveedor'}"></h1>
-<form th:action="@{${proveedor.id == null ? '/proveedores/guardar' : '/proveedores/actualizar'}}" th:object="${proveedor}" method="post">
-    <label>Nombre:</label>
-    <input type="text" th:field="*{nombre}" required /><br>
-    <label>Contacto:</label>
-    <input type="text" th:field="*{contacto}" required /><br>
-    <label>Correo:</label>
-    <input type="email" th:field="*{correo}" required /><br>
-    <label>Teléfono:</label>
-    <input type="text" th:field="*{telefono}" required /><br>
-    <button type="submit">Guardar</button>
-</form>
-<a href="/proveedores">Volver</a>
+<header class="admin-header">
+    <div class="header-left">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="admin-logo" id="logoBtn" title="Menú">
+        <span class="admin-title">ADMINISTRADOR</span>
+    </div>
+    <div class="header-actions">
+        <a href="/admin/correos-masivos" class="header-btn"><i class="fas fa-envelope"></i> Enviar correos</a>
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        </form>
+    </div>
+</header>
+<aside class="sidebar hide" id="sidebar">
+    <nav>
+        <ul>
+            <li><a href="/dashboard"><i class="fas fa-home"></i> Inicio</a></li>
+            <li><a href="/usuarios"><i class="fas fa-users"></i> Usuarios</a></li>
+            <li><a href="/productos"><i class="fas fa-boxes"></i> Productos / Inventario</a></li>
+            <li><a href="/proveedores" class="active"><i class="fas fa-truck"></i> Proveedores</a></li>
+            <li><a href="/admin/ventas"><i class="fas fa-shopping-cart"></i> Ventas</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<main class="dashboard-main">
+    <section class="form-card">
+        <div class="form-header">
+            <h1 th:text="${proveedor.id == null ? 'Agregar Proveedor' : 'Editar Proveedor'}"><i class="fas fa-truck"></i></h1>
+            <a href="/proveedores" class="volver-btn"><i class="fas fa-arrow-left"></i> Volver</a>
+        </div>
+        <form th:action="@{${proveedor.id == null ? '/proveedores/guardar' : '/proveedores/actualizar'}}" th:object="${proveedor}" method="post" class="form-panel">
+            <div class="form-group">
+                <label for="nombre">Nombre:</label>
+                <input type="text" th:field="*{nombre}" id="nombre" required />
+            </div>
+            <div class="form-group">
+                <label for="contacto">Contacto:</label>
+                <input type="text" th:field="*{contacto}" id="contacto" required />
+            </div>
+            <div class="form-group">
+                <label for="correo">Correo:</label>
+                <input type="email" th:field="*{correo}" id="correo" required />
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="text" th:field="*{telefono}" id="telefono" required />
+            </div>
+            <div class="form-actions">
+                <button type="submit" class="save-btn"><i class="fas fa-save"></i> Guardar</button>
+            </div>
+        </form>
+    </section>
+</main>
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const logoBtn = document.getElementById('logoBtn');
+    logoBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hide');
+    });
+</script>
 </body>
 </html>

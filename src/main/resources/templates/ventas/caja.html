@@ -1,57 +1,112 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es">
 <head>
-    <title>Caja - Realizar Venta</title>
-    <script>
-        function agregarProducto() {
-            const container = document.getElementById('productos-container');
-            const index = container.children.length;
-            const template = document.getElementById('producto-template');
-            const clone = template.cloneNode(true);
-            clone.style.display = '';
-            clone.querySelector('[name="detalles[0].producto.id"]').setAttribute('name', `detalles[${index}].producto.id`);
-            clone.querySelector('[name="detalles[0].cantidad"]').setAttribute('name', `detalles[${index}].cantidad`);
-            container.appendChild(clone);
-        }
-        function eliminarProducto(btn) {
-            btn.parentNode.remove();
-        }
-    </script>
+    <meta charset="UTF-8">
+    <title>Caja | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/assets/css/dashboard_empleado.css">
+    <link rel="stylesheet" href="/assets/css/caja_empleado_nuevo.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/assets/js/caja_empleado_nuevo.js"></script>
 </head>
 <body>
-<h1>Caja</h1>
-<form th:action="@{/ventas/registrar}" method="post">
-    <div id="productos-container">
-        <div id="producto-template">
-            <label>Producto:</label>
-            <select name="detalles[0].producto.id" required>
-                <option th:each="prod : ${productos}" th:value="${prod.id}" th:text="${prod.nombre + ' (' + prod.cantidad + ')'}"></option>
-            </select>
-            <label>Cantidad:</label>
-            <input type="number" name="detalles[0].cantidad" min="1" required />
-            <button type="button" onclick="eliminarProducto(this)">Eliminar</button>
-        </div>
+<header class="empleado-header">
+    <div class="header-left">
+        <img src="/assets/img/Alogo.png" alt="Alemandan Logo" class="empleado-logo" id="logoBtn" title="Menú">
+        <span class="empleado-title">EMPLEADO</span>
     </div>
-    <button type="button" onclick="agregarProducto()">Agregar otro producto</button>
-    <br><br>
-    <label>Método de pago:</label>
-    <select name="metodoPago" required>
-        <option value="Efectivo">Efectivo</option>
-        <option value="Tarjeta">Tarjeta</option>
-        <option value="Transferencia">Transferencia</option>
-    </select>
-    <br><br>
-    <button type="submit">Vender</button>
-</form>
-<div th:if="${ventaExitosa}" style="color:green;">
-    <p>¡Venta realizada exitosamente!</p>
-</div>
-<div th:if="${ventaError}" style="color:red;">
-    <p th:text="${ventaError}"></p>
-</div>
-<a href="/dashboard">Volver al dashboard</a>
+    <div class="header-actions">
+        <form action="/logout" method="post" class="header-btn logout-form">
+            <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        </form>
+    </div>
+</header>
+<aside class="sidebar hide" id="sidebar">
+    <nav>
+        <ul>
+            <li><a href="/dashboard"><i class="fas fa-home"></i> Inicio</a></li>
+            <li><a href="/ventas/caja" class="active"><i class="fas fa-cash-register"></i> Caja</a></li>
+            <li><a href="/ventas/mis-ventas"><i class="fas fa-receipt"></i> Mis ventas</a></li>
+        </ul>
+    </nav>
+</aside>
+<main class="dashboard-main">
+    <section class="caja-panel">
+        <div class="caja-izquierda">
+            <button class="btn-iniciar-compra" id="btnIniciarCompra"><i class="fas fa-play"></i> Iniciar Nueva Compra</button>
+            <div class="caja-buscar">
+                <h3><i class="fas fa-barcode"></i> Escanear Producto</h3>
+                <input type="text" id="inputBuscarProducto" class="input-buscar" placeholder="Código o nombre del producto" autocomplete="off" disabled>
+                <button type="button" id="btnBuscarManual" class="buscar-manual-btn" disabled>
+                    <i class="fas fa-search"></i> Buscar Manualmente
+                </button>
+                <div id="resultadosBusqueda" class="resultados-busqueda"></div>
+            </div>
+            <div class="caja-total">
+                <h3><i class="fas fa-money-bill-wave"></i> Total a Pagar</h3>
+                <span class="total-pagar" id="totalPagar">$0</span>
+                <div class="metodo-pago-opciones">
+                    <button type="button" class="pago-btn" data-metodo="Efectivo" disabled><i class="fas fa-money-bill"></i> Efectivo</button>
+                    <button type="button" class="pago-btn" data-metodo="Tarjeta" disabled><i class="fas fa-credit-card"></i> Tarjeta</button>
+                    <button type="button" class="pago-btn" data-metodo="Transferencia" disabled><i class="fas fa-exchange-alt"></i> Transferencia</button>
+                </div>
+                <button id="btnFinalizarCompra" class="btn-finalizar" disabled>
+                    <i class="fas fa-check-circle"></i> Finalizar Compra
+                </button>
+            </div>
+        </div>
+        <div class="caja-derecha">
+            <div class="ticket-venta-card">
+                <h2><i class="fas fa-receipt"></i> Ticket de Venta</h2>
+                <div class="ticket-header">
+                    <span id="ticketFecha">Fecha: --/--/----</span>
+                    <span id="ticketCajero">
+                        <!-- El nombre del empleado se inyecta desde el backend -->
+                        Cajero: <span id="cajeroNombre">
+                            <!-- Si usas Thymeleaf, usa: th:text="${empleado.nombre}" -->
+                        </span>
+                    </span>
+                    <span id="ticketNumVenta">N° Venta: ----</span>
+                </div>
+                <div class="ticket-table-bg">
+                    <table class="ticket-table">
+                        <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Precio</th>
+                            <th>Cant.</th>
+                            <th>Total</th>
+                            <th></th>
+                        </tr>
+                        </thead>
+                        <tbody id="ticketProductos">
+                        <tr id="ticketEmpty">
+                            <td colspan="5" class="ticket-empty">
+                                <i class="fas fa-shopping-cart"></i> No hay productos agregados
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ticket-resumen">
+                    <div>Subtotal: <span id="ticketSubtotal">$0</span></div>
+                    <div>IVA (19%): <span id="ticketIva">$0</span></div>
+                    <div class="ticket-total">Total: <span id="ticketTotal">$0</span></div>
+                </div>
+                <div id="ventaExitosa" class="msg-success" style="display:none;">¡Venta realizada exitosamente!</div>
+                <div id="ventaError" class="msg-error" style="display:none;"></div>
+            </div>
+        </div>
+    </section>
+</main>
 <script>
-    document.getElementById('producto-template').style.display = '';
+    const sidebar = document.getElementById('sidebar');
+    const logoBtn = document.getElementById('logoBtn');
+    logoBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hide');
+    });
 </script>
 </body>
 </html>

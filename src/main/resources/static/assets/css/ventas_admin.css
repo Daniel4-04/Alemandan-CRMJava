@@ -1,0 +1,204 @@
+.ventas-panel {
+    width: 100%;
+    max-width: 1280px;
+    margin: 40px auto 0 auto;
+    background: #fff;
+    border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(32,72,198,0.11);
+    padding: 38px 42px 30px 42px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.ventas-header h1 {
+    font-size: 2em;
+    font-weight: 700;
+    color: #2048c6;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.ventas-body {
+    display: flex;
+    gap: 36px;
+    align-items: flex-start;
+}
+
+.ventas-table-card {
+    flex: 2;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.ventas-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    align-items: center;
+    margin-bottom: 14px;
+}
+.ventas-filtros label {
+    font-weight: 500;
+    color: #2048c6;
+    margin-right: 4px;
+}
+.ventas-filtros input, .ventas-filtros select {
+    padding: 7px 13px;
+    border-radius: 7px;
+    border: 1.5px solid #a2b8e9;
+    font-size: 1em;
+    background: #f6f8fd;
+    color: #2048c6;
+    outline: none;
+    transition: border 0.15s;
+}
+.ventas-filtros input:focus, .ventas-filtros select:focus {
+    border: 2px solid #2048c6;
+    background: #eaf2ff;
+}
+
+.ventas-filtros-actions {
+    display: flex;
+    gap: 12px;
+}
+.ventas-filtrar-btn, .ventas-export-btn {
+    color: #2048c6;
+    background: #eaf2ff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+    transition: background 0.17s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 1.01em;
+}
+.ventas-filtrar-btn:hover, .ventas-export-btn:hover {
+    background: #d2e6fc;
+    color: #3366ff;
+}
+
+.ventas-table-bg {
+    width: 100%;
+    overflow-x: auto;
+}
+.ventas-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    font-size: 1.04em;
+    box-shadow: 0 2px 12px rgba(32,72,198,0.06);
+    overflow: hidden;
+}
+.ventas-table thead {
+    background: #2048c6;
+    color: #fff;
+}
+.ventas-table th, .ventas-table td {
+    padding: 12px 16px;
+    text-align: left;
+}
+.ventas-table th {
+    font-weight: 600;
+    font-size: 1.08em;
+    letter-spacing: 1px;
+}
+.ventas-table tbody tr {
+    transition: background 0.13s;
+}
+.ventas-table tbody tr:hover {
+    background: #eaf2ff;
+}
+.ventas-table td {
+    border-bottom: 1px solid #e9e9e9;
+}
+.volver-btn {
+    color: #2048c6;
+    background: #eaf2ff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.17s;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 1.09em;
+    border: none;
+    margin-top: 10px;
+}
+.volver-btn:hover {
+    background: #d2e6fc;
+    color: #3366ff;
+    text-decoration: underline;
+}
+
+/* Small chart card beside table */
+.ventas-chart-card {
+    flex: 1;
+    min-width: 320px;
+    max-width: 360px;
+    background: #f6f8fd;
+    border-radius: 20px;
+    box-shadow: 0 4px 16px rgba(32,72,198,0.07);
+    padding: 20px 16px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 18px;
+}
+.ventas-chart-card h3 {
+    font-size: 1.18em;
+    font-weight: 700;
+    color: #2048c6;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.chart-export-btn {
+    color: #fff;
+    background: #2048c6;
+    border: none;
+    font-weight: 700;
+    font-size: 0.99em;
+    padding: 8px 20px;
+    border-radius: 8px;
+    transition: background 0.15s, color 0.15s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.chart-export-btn:hover {
+    background: #3366ff;
+    color: #eaf2ff;
+}
+
+@media (max-width: 950px) {
+    .ventas-body {
+        flex-direction: column;
+        gap: 22px;
+    }
+    .ventas-chart-card {
+        max-width: 99vw;
+        min-width: 0;
+        margin-bottom: 15px;
+    }
+}
+@media (max-width: 650px) {
+    .ventas-panel {
+        padding: 20px 8px 10px 8px;
+    }
+    .ventas-table th, .ventas-table td {
+        padding: 8px 8px;
+    }
+}

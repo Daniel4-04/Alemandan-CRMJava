@@ -32,6 +32,9 @@ public class VentaService {
             if (detalle.getCantidad() > producto.getCantidad()) {
                 return "No hay suficiente stock del producto '" + producto.getNombre() + "'. Disponible: " + producto.getCantidad();
             }
+            if (detalle.getCantidad() < 1) {
+                return "La cantidad del producto '" + producto.getNombre() + "' debe ser al menos 1.";
+            }
         }
 
         // Si pasó validación, realiza la venta
@@ -84,5 +87,18 @@ public class VentaService {
         LocalDateTime inicio = hoy.atStartOfDay();
         LocalDateTime fin = hoy.plusDays(1).atStartOfDay();
         return ventaRepository.countByFechaBetween(inicio, fin);
+    }
+
+    // NUEVO: ventas del día de un empleado
+    public long countVentasDelDiaEmpleado(Long empleadoId) {
+        LocalDate hoy = LocalDate.now();
+        LocalDateTime inicio = hoy.atStartOfDay();
+        LocalDateTime fin = hoy.plusDays(1).atStartOfDay();
+        return ventaRepository.countByUsuarioIdAndFechaBetween(empleadoId, inicio, fin);
+    }
+
+    // NUEVO: ventas totales de un empleado
+    public long countVentasTotalesEmpleado(Long empleadoId) {
+        return ventaRepository.countByUsuarioId(empleadoId);
     }
 }

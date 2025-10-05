@@ -1,13 +1,71 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Dashboard Empleado</title>
+    <meta charset="UTF-8">
+    <title>Dashboard Empleado | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/assets/css/dashboard_empleado.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<h1>Bienvenido, Empleado</h1>
-<ul>
-    <li><a href="/ventas/caja">Caja</a></li>
-    <li><a href="/ventas/mis-ventas">Mis Ventas</a></li>
-</ul>
+<!-- Header superior con logo fijo y acciones a la derecha -->
+<header class="empleado-header">
+    <div class="header-left">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="empleado-logo" id="logoBtn" title="Menú">
+        <span class="empleado-title">EMPLEADO</span>
+    </div>
+    <div class="header-actions">
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        </form>
+    </div>
+</header>
+
+<!-- Panel lateral ocultable, inicia debajo del header -->
+<aside class="sidebar hide" id="sidebar">
+    <nav>
+        <ul>
+            <li><a href="/ventas/caja"><i class="fas fa-cash-register"></i> Caja</a></li>
+            <li><a href="/ventas/mis-ventas"><i class="fas fa-receipt"></i> Mis ventas</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<!-- Main dashboard, caja estática centrada -->
+<main class="dashboard-main">
+    <section class="empleado-profile">
+        <div class="profile-info">
+            <div class="profile-img-container">
+                <img th:src="@{/assets/img/empleado_profile.jpg}" alt="Empleado Perfil" class="profile-img">
+                <span class="profile-role"><i class="fas fa-user"></i></span>
+            </div>
+            <div class="profile-details">
+                <h2 th:text="${empleado.nombre}">Empleado</h2>
+                <div class="profile-contact">
+                    <span><i class="fas fa-envelope"></i> <span th:text="${empleado.email}">empleado@alemandan.com</span></span>
+                </div>
+            </div>
+        </div>
+        <div class="profile-resumen">
+            <div class="resumen-item">
+                <span class="resumen-title">Ventas del día</span>
+                <span class="resumen-value" th:text="${misVentasDia}">0</span>
+            </div>
+            <div class="resumen-item">
+                <span class="resumen-title">Total ventas</span>
+                <span class="resumen-value" th:text="${totalMisVentas}">0</span>
+            </div>
+        </div>
+    </section>
+</main>
+
+<!-- JS para mostrar/ocultar sidebar al hacer clic en el logo -->
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const logoBtn = document.getElementById('logoBtn');
+    logoBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hide');
+    });
+</script>
 </body>
 </html>

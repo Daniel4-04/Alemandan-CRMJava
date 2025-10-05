@@ -9,4 +9,7 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     List<Producto> findByNombreAndActivoFalse(String nombre);
 
     long count(); // Para contar productos
+
+    // NUEVO: Para búsqueda por nombre/código AJAX
+    List<Producto> findByNombreContainingIgnoreCaseAndActivoTrue(String nombre);
 }

@@ -22,6 +22,7 @@ public class Producto {
     @NotNull
     private Double precio;
 
+    // NUEVO: Estado de producto para activar/inactivar
     @Column(nullable = false)
     private Boolean activo = true;
 
@@ -41,10 +42,6 @@ public class Producto {
     public Double getPrecio() { return precio; }
     public void setPrecio(Double precio) { this.precio = precio; }
 
-    public Boolean getActivo() {
-        return activo;
-    }
-    public void setActivo(Boolean activo) {
-        this.activo = activo;
-    }
+    public Boolean getActivo() { return activo; }
+    public void setActivo(Boolean activo) { this.activo = activo; }
 }

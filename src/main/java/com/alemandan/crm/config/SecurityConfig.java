@@ -37,7 +37,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Permite POST al endpoint de exportar gráfica a PDF
                         .requestMatchers(HttpMethod.POST, "/admin/ventas/exportar-grafico-pdf").permitAll()
-                        // Acceso público
+                        // Acceso público (¡aquí están las páginas legales y ayuda!)
                         .requestMatchers(
                                 "/",
                                 "/index",
@@ -50,18 +50,31 @@ public class SecurityConfig {
                                 "/css/**",
                                 "/js/**",
                                 "/assets/**",
-                                "/images/**"
+                                "/images/**",
+                                "/terminos",
+                                "/privacidad",
+                                "/faq",
+                                "/pqr",
+                                "/mapa"
                         ).permitAll()
                         // Dashboard general (redirigido según rol)
                         .requestMatchers("/dashboard").authenticated()
                         // Módulos solo para ADMIN
                         .requestMatchers("/usuarios/**", "/productos/**", "/proveedores/**", "/dashboard-admin", "/dashboard-admin/**").hasAuthority("ADMIN")
                         // Módulos solo para EMPLEADO
-                        .requestMatchers("/ventas/caja", "/ventas/caja/**", "/ventas/registrar", "/ventas/mis-ventas", "/dashboard-empleado", "/dashboard-empleado/**").hasAuthority("EMPLEADO")
+                        .requestMatchers(
+                                "/ventas/caja", "/ventas/caja/**",
+                                "/ventas/registrar", "/ventas/mis-ventas",
+                                "/dashboard-empleado", "/dashboard-empleado/**",
+                                "/api/ventas/**"
+                        ).hasAuthority("EMPLEADO")
                         // Cualquier otra petición requiere autenticación
                         .anyRequest().authenticated()
                 )
-                .csrf(csrf -> csrf.ignoringRequestMatchers("/admin/ventas/exportar-grafico-pdf"))
+                // Ignora CSRF para endpoints AJAX de ventas y exportar PDF
+                .csrf(csrf -> csrf
+                        .ignoringRequestMatchers("/admin/ventas/exportar-grafico-pdf", "/api/ventas/**", "/logout")
+                )
                 .formLogin(form -> form
                         .loginPage("/login")
                         .defaultSuccessUrl("/dashboard", true)

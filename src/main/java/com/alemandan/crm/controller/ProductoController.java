@@ -4,9 +4,9 @@ import com.alemandan.crm.model.Producto;
 import com.alemandan.crm.service.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -19,10 +19,10 @@ public class ProductoController {
     @Autowired
     private ProductoService productoService;
 
-    // Listar productos
+    // Listar todos los productos (activos e inactivos)
     @GetMapping
     public String listarProductos(Model model) {
-        List<Producto> productos = productoService.getAllProductos();
+        List<Producto> productos = productoService.listarProductos();
         model.addAttribute("productos", productos);
         return "productos/listaprod";
     }
@@ -61,10 +61,27 @@ public class ProductoController {
         return "redirect:/productos";
     }
 
-    // Eliminar(INACTIVAR) producto
-    @GetMapping("/eliminar/{id}")
+    // Inactivar producto
+    @GetMapping("/inactivar/{id}")
     public String inactivarProducto(@PathVariable Long id) {
         productoService.inactivarProducto(id);
         return "redirect:/productos";
+    }
+
+    // Activar producto
+    @GetMapping("/activar/{id}")
+    public String activarProducto(@PathVariable Long id) {
+        productoService.activarProducto(id);
+        return "redirect:/productos";
+    }
+
+    // NUEVO: Endpoint para búsqueda AJAX (empleado/caja)
+    @GetMapping("/api/productos/buscar")
+    @ResponseBody
+    public List<Producto> buscarProductos(@RequestParam(required = false) String term) {
+        if (term == null || term.trim().isEmpty()) {
+            return productoService.getAllProductos();
+        }
+        return productoService.buscarPorNombre(term.trim());
     }
 }

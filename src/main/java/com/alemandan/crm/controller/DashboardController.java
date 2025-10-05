@@ -38,6 +38,13 @@ public class DashboardController {
 
             return "dashboardadmin";
         } else if (auth.getAuthorities().contains(new SimpleGrantedAuthority("EMPLEADO"))) {
+            Usuario empleado = usuarioService.findByEmail(auth.getName());
+            model.addAttribute("empleado", empleado);
+
+            // Ejemplo: puedes agregar datos extra si tienes servicios para ello
+            model.addAttribute("misVentasDia", ventaService.countVentasDelDiaEmpleado(empleado.getId()));
+            model.addAttribute("totalMisVentas", ventaService.countVentasTotalesEmpleado(empleado.getId()));
+
             return "dashboardempleado";
         }
         return "redirect:/login?error";

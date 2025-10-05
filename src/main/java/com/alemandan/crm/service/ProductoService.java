@@ -19,7 +19,7 @@ public class ProductoService {
         return productoRepository.findByActivoTrue();
     }
 
-    // Listar todos los productos (para filtros admin)
+    // Listar todos los productos (activos e inactivos)
     public List<Producto> listarProductos() {
         return productoRepository.findAll();
     }
@@ -51,7 +51,21 @@ public class ProductoService {
         }
     }
 
+    public void activarProducto(Long id) {
+        Optional<Producto> productoOpt = productoRepository.findById(id);
+        if (productoOpt.isPresent()) {
+            Producto producto = productoOpt.get();
+            producto.setActivo(true);
+            productoRepository.save(producto);
+        }
+    }
+
     public long countProductos() {
         return productoRepository.count();
+    }
+
+    // NUEVO: Buscar productos para AJAX/autocompletar en caja
+    public List<Producto> buscarPorNombre(String nombre) {
+        return productoRepository.findByNombreContainingIgnoreCaseAndActivoTrue(nombre);
     }
 }

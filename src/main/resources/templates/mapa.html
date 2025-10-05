@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mapa de navegación | Alemandan CRM</title>
+    <link rel="stylesheet" th:href="@{/assets/css/style.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/legal.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+<header class="header">
+    <nav class="navbar">
+        <div class="logo-container">
+            <a th:href="@{/}">
+                <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="logo bounce-in">
+            </a>
+        </div>
+        <ul class="nav-links">
+            <li><a href="#features" class="nav-link">Características</a></li>
+            <li><a href="#about" class="nav-link">Sobre Nosotros</a></li>
+            <li><a th:href="@{/login}" class="nav-link login-btn pulse">Ingresar <i class="fas fa-sign-in-alt"></i></a></li>
+        </ul>
+    </nav>
+</header>
+<main class="legal-main">
+    <section class="legal-section">
+        <h1 class="legal-title"><i class="fas fa-map"></i> Mapa de navegación</h1>
+        <div class="legal-content">
+            <ul class="map-list">
+                <li><a href="/">Inicio</a></li>
+                <li><a href="/login">Ingresar</a></li>
+                <li><a href="/terminos">Términos y condiciones</a></li>
+                <li><a href="/privacidad">Política de privacidad</a></li>
+                <li><a href="/faq">FAQ</a></li>
+                <li><a href="/mapa">Mapa de navegación</a></li>
+                <!-- Agrega aquí PQR cuando esté lista -->
+            </ul>
+            <p class="map-note">
+                <i class="fas fa-info-circle"></i> Estas son las páginas públicas, accesibles sin iniciar sesión.
+            </p>
+        </div>
+    </section>
+</main>
+<footer class="footer">
+    <div class="footer-container">
+        <div class="footer-logo">
+            <img th:src="@{/assets/img/Alogo.png}" src="/assets/img/Alogo.png" alt="Alemandan Logo">
+        </div>
+        <div class="footer-links">
+            <a href="/">Inicio</a>
+            <a href="#features">Características</a>
+            <a href="#about">Sobre Nosotros</a>
+            <a th:href="@{/login}" href="/login">Ingresar</a>
+            <a href="/terminos" target="_blank">Términos y condiciones</a>
+            <a href="/privacidad" target="_blank">Política de privacidad</a>
+            <a href="/faq" target="_blank">FAQ</a>
+            <a href="/mapa" target="_blank">Mapa de navegación</a>
+        </div>
+        <div class="footer-social">
+            <a href="#" title="Twitter"><i class="fab fa-twitter"></i></a>
+            <a href="#" title="WhatsApp"><i class="fab fa-whatsapp"></i></a>
+            <a href="#" title="Instagram"><i class="fab fa-instagram"></i></a>
+        </div>
+        <div class="footer-contact">
+            <div><i class="fas fa-phone"></i> +57 123 456 7890</div>
+            <div><i class="fas fa-map-marker-alt"></i> Bogotá, Colombia</div>
+        </div>
+    </div>
+    <div class="footer-bottom">
+        <p>&copy; 2025 Alemandan CRM. Todos los derechos reservados.</p>
+    </div>
+</footer>
+</body>
+</html>

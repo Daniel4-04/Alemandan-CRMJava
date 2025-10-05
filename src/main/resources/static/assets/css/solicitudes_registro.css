@@ -1,0 +1,135 @@
+.solicitudes-card {
+    width: 100%;
+    max-width: 1020px;
+    margin: 40px auto 0 auto;
+    background: #fff;
+    border-radius: 28px;
+    box-shadow: 0 8px 32px rgba(32,72,198,0.11);
+    padding: 38px 42px 30px 42px;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.solicitudes-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 10px;
+}
+
+.solicitudes-header h1 {
+    font-size: 2em;
+    font-weight: 700;
+    color: #2048c6;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.volver-btn {
+    color: #2048c6;
+    background: #eaf2ff;
+    padding: 8px 18px;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.17s;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 1.09em;
+    border: none;
+}
+.volver-btn:hover {
+    background: #d2e6fc;
+    color: #3366ff;
+    text-decoration: underline;
+}
+
+.tabla-bg {
+    width: 100%;
+    overflow-x: auto;
+}
+.solicitudes-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+    border-radius: 12px;
+    font-size: 1.04em;
+    box-shadow: 0 2px 12px rgba(32,72,198,0.06);
+    overflow: hidden;
+}
+.solicitudes-table thead {
+    background: #2048c6;
+    color: #fff;
+}
+.solicitudes-table th, .solicitudes-table td {
+    padding: 12px 16px;
+    text-align: left;
+}
+.solicitudes-table th {
+    font-weight: 600;
+    font-size: 1.08em;
+    letter-spacing: 1px;
+}
+.solicitudes-table tbody tr {
+    transition: background 0.13s;
+}
+.solicitudes-table tbody tr:hover {
+    background: #eaf2ff;
+}
+.solicitudes-table td {
+    border-bottom: 1px solid #e9e9e9;
+}
+.btn-aprobar {
+    color: #219150;
+    background: #eaffec;
+    border: none;
+    font-weight: 600;
+    font-size: 0.99em;
+    padding: 6px 18px;
+    border-radius: 7px;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 6px;
+    cursor: pointer;
+}
+.btn-aprobar:hover {
+    background: #c4f3d4;
+    color: #148b32;
+}
+.btn-rechazar {
+    color: #e53935;
+    background: #ffeaea;
+    border: none;
+    font-weight: 600;
+    font-size: 0.99em;
+    padding: 6px 18px;
+    border-radius: 7px;
+    text-decoration: none;
+    transition: background 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    cursor: pointer;
+}
+.btn-rechazar:hover {
+    background: #ffd5d5;
+    color: #b70000;
+}
+@media (max-width: 850px) {
+    .solicitudes-card {
+        padding: 20px 8px 10px 8px;
+    }
+    .tabla-bg {
+        padding: 0 0;
+    }
+    .solicitudes-table th, .solicitudes-table td {
+        padding: 8px 8px;
+    }
+}

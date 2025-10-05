@@ -1,34 +1,94 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Gestión de Proveedores</title>
+    <meta charset="UTF-8">
+    <title>Gestión de Proveedores | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" th:href="@{/assets/css/dashboard_admin.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/proveedores_panel.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<h1>Gestión de Proveedores</h1>
-<a href="/proveedores/nuevo">Agregar proveedor</a>
-<table border="1">
-    <tr>
-        <th>Nombre</th>
-        <th>Contacto</th>
-        <th>Correo</th>
-        <th>Teléfono</th>
-        <th>Estado</th>
-        <th>Acciones</th>
-    </tr>
-    <tr th:each="p : ${proveedores}">
-        <td th:text="${p.nombre}"></td>
-        <td th:text="${p.contacto}"></td>
-        <td th:text="${p.correo}"></td>
-        <td th:text="${p.telefono}"></td>
-        <td th:text="${p.activo ? 'Activo' : 'Inactivo'}"></td>
-        <td>
-            <a th:href="@{/proveedores/editar/{id}(id=${p.id})}">Editar</a>
-            <a th:if="${p.activo}" th:href="@{/proveedores/inactivar/{id}(id=${p.id})}">Inactivar</a>
-            <a th:unless="${p.activo}" th:href="@{/proveedores/activar/{id}(id=${p.id})}">Activar</a>
-            <a th:href="@{/proveedores/eliminar/{id}(id=${p.id})}" onclick="return confirm('¿Eliminar proveedor?')">Eliminar</a>
-        </td>
-    </tr>
-</table>
-<a href="/dashboard">Volver al dashboard</a>
+<header class="admin-header">
+    <div class="header-left">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="admin-logo" id="logoBtn" title="Menú">
+        <span class="admin-title">ADMINISTRADOR</span>
+    </div>
+    <div class="header-actions">
+        <a href="/admin/correos-masivos" class="header-btn"><i class="fas fa-envelope"></i> Enviar correos</a>
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        </form>
+    </div>
+</header>
+
+<aside class="sidebar hide" id="sidebar">
+    <nav>
+        <ul>
+            <li><a href="/dashboard"><i class="fas fa-home"></i> Inicio</a></li>
+            <li><a href="/usuarios"><i class="fas fa-users"></i> Usuarios</a></li>
+            <li><a href="/productos"><i class="fas fa-boxes"></i> Productos / Inventario</a></li>
+            <li><a href="/proveedores" class="active"><i class="fas fa-truck"></i> Proveedores</a></li>
+            <li><a href="/admin/ventas"><i class="fas fa-shopping-cart"></i> Ventas</a></li>
+        </ul>
+    </nav>
+</aside>
+
+<main class="dashboard-main">
+    <section class="panel-card">
+        <div class="panel-header">
+            <h1><i class="fas fa-truck"></i> Gestión de Proveedores</h1>
+            <div class="panel-actions">
+                <a href="/proveedores/nuevo" class="add-btn"><i class="fas fa-plus"></i> Agregar proveedor</a>
+            </div>
+        </div>
+        <div class="tabla-bg">
+            <table class="tabla-panel">
+                <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Contacto</th>
+                    <th>Correo</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="p : ${proveedores}">
+                    <td th:text="${p.nombre}"></td>
+                    <td th:text="${p.contacto}"></td>
+                    <td th:text="${p.correo}"></td>
+                    <td th:text="${p.telefono}"></td>
+                    <td>
+                        <span th:text="${p.activo ? 'Activo' : 'Inactivo'}"
+                              th:classappend="${p.activo ? 'estado-activo' : 'estado-inactivo'}"></span>
+                    </td>
+                    <td>
+                        <a th:href="@{/proveedores/editar/{id}(id=${p.id})}" class="btn-editar"><i class="fas fa-edit"></i> Editar</a>
+                        <a th:if="${p.activo}" th:href="@{/proveedores/inactivar/{id}(id=${p.id})}"
+                           class="btn-inactivar"
+                           onclick="return confirm('¿Seguro que quieres inactivar este proveedor?');">
+                            <i class="fas fa-ban"></i> Inactivar
+                        </a>
+                        <a th:unless="${p.activo}" th:href="@{/proveedores/activar/{id}(id=${p.id})}"
+                           class="btn-activar"
+                           onclick="return confirm('¿Seguro que quieres activar este proveedor?');">
+                            <i class="fas fa-check"></i> Activar
+                        </a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</main>
+<script>
+    const sidebar = document.getElementById('sidebar');
+    const logoBtn = document.getElementById('logoBtn');
+    logoBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hide');
+    });
+</script>
 </body>
 </html>

@@ -1,68 +1,116 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Reporte de Ventas - Administrador</title>
+    <meta charset="UTF-8">
+    <title>Reporte de Ventas - Administrador | Alemandan CRM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" th:href="@{/assets/css/dashboard_admin.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/ventas_admin.css}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
-<h1>Reporte de Ventas - Administrador</h1>
-<form method="get" th:action="@{/admin/ventas}">
-    <label>Fecha inicio:</label>
-    <input type="date" name="fechaInicio" th:value="${param.fechaInicio}" />
-    <label>Fecha fin:</label>
-    <input type="date" name="fechaFin" th:value="${param.fechaFin}" />
-    <label>Empleado:</label>
-    <select name="usuarioId">
-        <option value="">Todos</option>
-        <option th:each="e : ${empleados}" th:value="${e.id}" th:text="${e.nombre}"></option>
-    </select>
-    <label>Producto:</label>
-    <select name="productoId">
-        <option value="">Todos</option>
-        <option th:each="p : ${productos}" th:value="${p.id}" th:text="${p.nombre}"></option>
-    </select>
-    <label>Método de pago:</label>
-    <select name="metodoPago">
-        <option value="">Todos</option>
-        <option value="Efectivo">Efectivo</option>
-        <option value="Tarjeta">Tarjeta</option>
-        <option value="Transferencia">Transferencia</option>
-    </select>
-    <button type="submit">Filtrar</button>
-    <a th:href="@{/admin/ventas/exportar-pdf(
-            fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
-        )}">Exportar tabla PDF</a>
-    <a th:href="@{/admin/ventas/exportar-excel(
-            fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
-        )}">Exportar tabla Excel</a>
-</form>
+<header class="admin-header">
+    <div class="header-left">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="admin-logo" id="logoBtn" title="Menú">
+        <span class="admin-title">ADMINISTRADOR</span>
+    </div>
+    <div class="header-actions">
+        <a href="/admin/correos-masivos" class="header-btn"><i class="fas fa-envelope"></i> Enviar correos</a>
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
+            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+        </form>
+    </div>
+</header>
+<aside class="sidebar hide" id="sidebar">
+    <nav>
+        <ul>
+            <li><a href="/dashboard"><i class="fas fa-home"></i> Inicio</a></li>
+            <li><a href="/usuarios"><i class="fas fa-users"></i> Usuarios</a></li>
+            <li><a href="/productos"><i class="fas fa-boxes"></i> Productos / Inventario</a></li>
+            <li><a href="/proveedores"><i class="fas fa-truck"></i> Proveedores</a></li>
+            <li><a href="/admin/ventas" class="active"><i class="fas fa-shopping-cart"></i> Ventas</a></li>
+        </ul>
+    </nav>
+</aside>
 
-<table border="1">
-    <tr>
-        <th>ID</th>
-        <th>Fecha</th>
-        <th>Empleado</th>
-        <th>Método de pago</th>
-        <th>Total</th>
-        <th>Productos</th>
-    </tr>
-    <tr th:each="v : ${ventas}">
-        <td th:text="${v.id}"></td>
-        <td th:text="${v.fecha}"></td>
-        <td th:text="${v.usuario.nombre}"></td>
-        <td th:text="${v.metodoPago}"></td>
-        <td th:text="${v.total}"></td>
-        <td>
-            <ul>
-                <li th:each="d : ${v.detalles}" th:text="${d.producto.nombre + ' ( ' + d.cantidad + ' x ' + d.precioUnitario + ' )'}"></li>
-            </ul>
-        </td>
-    </tr>
-</table>
+<main class="dashboard-main">
+    <section class="ventas-panel">
+        <div class="ventas-header">
+            <h1><i class="fas fa-chart-line"></i> Reporte de Ventas - Administrador</h1>
+        </div>
+        <div class="ventas-body">
+            <div class="ventas-table-card">
+                <form method="get" th:action="@{/admin/ventas}" class="ventas-filtros">
+                    <label>Fecha inicio:</label>
+                    <input type="date" name="fechaInicio" th:value="${param.fechaInicio}" />
+                    <label>Fecha fin:</label>
+                    <input type="date" name="fechaFin" th:value="${param.fechaFin}" />
+                    <label>Empleado:</label>
+                    <select name="usuarioId">
+                        <option value="">Todos</option>
+                        <option th:each="e : ${empleados}" th:value="${e.id}" th:text="${e.nombre}"></option>
+                    </select>
+                    <label>Producto:</label>
+                    <select name="productoId">
+                        <option value="">Todos</option>
+                        <option th:each="p : ${productos}" th:value="${p.id}" th:text="${p.nombre}"></option>
+                    </select>
+                    <label>Método de pago:</label>
+                    <select name="metodoPago">
+                        <option value="">Todos</option>
+                        <option value="Efectivo">Efectivo</option>
+                        <option value="Tarjeta">Tarjeta</option>
+                        <option value="Transferencia">Transferencia</option>
+                    </select>
+                    <div class="ventas-filtros-actions">
+                        <button type="submit" class="ventas-filtrar-btn"><i class="fas fa-filter"></i> Filtrar</button>
+                        <a th:href="@{/admin/ventas/exportar-pdf(
+                                fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
+                            )}" class="ventas-export-btn"><i class="fas fa-file-pdf"></i> Exportar PDF</a>
+                        <a th:href="@{/admin/ventas/exportar-excel(
+                                fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
+                            )}" class="ventas-export-btn"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+                    </div>
+                </form>
+                <div class="ventas-table-bg">
+                    <table class="ventas-table">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Empleado</th>
+                            <th>Método de pago</th>
+                            <th>Total</th>
+                            <th>Productos</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="v : ${ventas}">
+                            <td th:text="${v.id}"></td>
+                            <td th:text="${v.fecha}"></td>
+                            <td th:text="${v.usuario.nombre}"></td>
+                            <td th:text="${v.metodoPago}"></td>
+                            <td th:text="${v.total}"></td>
+                            <td>
+                                <ul>
+                                    <li th:each="d : ${v.detalles}" th:text="${d.producto.nombre + ' ( ' + d.cantidad + ' x ' + d.precioUnitario + ' )'}"></li>
+                                </ul>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="ventas-chart-card">
+                <h3><i class="fas fa-users"></i> Ventas por empleado</h3>
+                <canvas id="chartVentasEmpleado" width="320" height="180"></canvas>
+                <button id="exportChartPdf" class="chart-export-btn"><i class="fas fa-file-pdf"></i> Exportar gráfica a PDF</button>
+            </div>
+        </div>
+    </section>
+</main>
 
-<h3>Gráfica de ventas por empleado</h3>
-<canvas id="chartVentasEmpleado" width="600" height="300"></canvas>
-<button id="exportChartPdf">Exportar gráfica a PDF</button>
 <script th:inline="javascript">
     /*<![CDATA[*/
     // Prepara datos acumulados por empleado para la gráfica
@@ -99,7 +147,6 @@
         })
             .then(response => {
                 if (!response.ok) {
-                    // Lee el texto del error enviado por el backend
                     return response.text().then(text => {
                         alert("Error al generar PDF:\n" + text);
                         throw new Error(text);
@@ -114,13 +161,16 @@
                 link.click();
             })
             .catch(error => {
-                // En caso de error JS, muestra el mensaje
                 alert("ERROR JS: " + error.message);
             });
     };
     /*]]>*/
-
+    // Sidebar toggle
+    const sidebar = document.getElementById('sidebar');
+    const logoBtn = document.getElementById('logoBtn');
+    logoBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('hide');
+    });
 </script>
-<a href="/dashboard">Volver al dashboard</a>
 </body>
 </html>
