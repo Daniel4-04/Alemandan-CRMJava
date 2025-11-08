@@ -18,16 +18,17 @@ spring.mail.properties.mail.smtp.starttls.enable=true
 spring.mail.properties.mail.smtp.starttls.required=true
 spring.mail.properties.mail.smtp.ssl.trust=smtp.gmail.com
 
-# Uploads / multipart config (aÃ±adido)
-# TamaÃ±os mÃ¡ximos
+# Uploads / multipart config (añadido)
+# Tamaños máximos
 spring.servlet.multipart.max-file-size=10MB
 spring.servlet.multipart.max-request-size=20MB
 
-# UbicaciÃ³n donde Spring puede almacenar ficheros multipart temporales (apunta a la carpeta uploads)
+# Ubicación donde Spring puede almacenar ficheros multipart temporales (apunta a la carpeta uploads)
+# Esto evita problemas si el temp por defecto no tiene permisos o no existe.
 spring.servlet.multipart.location=uploads
 
-# Ruta relativa/absoluta donde se guardarÃ¡n las imÃ¡genes (usada por WebConfig y tu controlador)
+# Ruta relativa/absoluta donde se guardarán las imágenes (usada por WebConfig y tu controlador)
 uploads.path=uploads
 
-# (Opcional) logging para multipart si quieres mÃ¡s informaciÃ³n en logs
+# (Opcional) logging para multipart si quieres más información en logs
 logging.level.org.springframework.web.multipart=DEBUG

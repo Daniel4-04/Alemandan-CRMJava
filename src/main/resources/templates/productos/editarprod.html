@@ -8,6 +8,23 @@
     <link rel="stylesheet" th:href="@{/assets/css/panel_tablas.css}">
     <link rel="stylesheet" th:href="@{/assets/css/productos_form.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* Pequeños ajustes locales para previews */
+        .current-img img, #previewImg {
+            max-width: 180px;
+            max-height: 120px;
+            border-radius: 6px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+        }
+        .img-controls {
+            margin-top: 8px;
+        }
+        .img-label {
+            display:block;
+            margin-bottom:6px;
+            font-weight:600;
+        }
+    </style>
 </head>
 <body>
 <header class="admin-header">
@@ -40,35 +57,111 @@
             <h1><i class="fas fa-edit"></i> Editar Producto</h1>
             <a href="/productos" class="volver-btn"><i class="fas fa-arrow-left"></i> Volver a la lista</a>
         </div>
-        <form th:action="@{/productos/actualizar}" th:object="${producto}" method="post" class="form-panel">
+
+        <!-- enctype multipart/form-data para subir imagen -->
+        <form th:action="@{/productos/actualizar}" th:object="${producto}" method="post" class="form-panel" enctype="multipart/form-data">
+            <!-- CSRF token -->
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+
             <input type="hidden" th:field="*{id}" />
+
             <div class="form-group">
                 <label for="nombre">Nombre:</label>
                 <input type="text" th:field="*{nombre}" id="nombre" required />
             </div>
+
             <div class="form-group">
                 <label for="descripcion">Descripción:</label>
                 <input type="text" th:field="*{descripcion}" id="descripcion" required />
             </div>
+
             <div class="form-group">
                 <label for="cantidad">Cantidad:</label>
                 <input type="number" th:field="*{cantidad}" id="cantidad" min="0" required />
             </div>
+
             <div class="form-group">
                 <label for="precio">Precio:</label>
                 <input type="number" th:field="*{precio}" id="precio" step="0.01" min="0" required />
             </div>
+
+            <!-- IMAGEN: muestra actual, opción eliminar y subir nueva -->
+            <div class="form-group">
+                <label class="img-label">Imagen actual:</label>
+                <div>
+                    <div th:if="${producto.imagePath != null}">
+                        <img th:src="${producto.imagePath}" alt="Imagen producto" onerror="this.src='/assets/img/default.png'" id="currentImg">
+                    </div>
+                    <div th:if="${producto.imagePath == null}">
+                        <img src="/assets/img/default.png" alt="Sin imagen" id="currentImg">
+                        <div>No hay imagen asignada</div>
+                    </div>
+                    <div class="img-controls">
+                        <label>
+                            <input type="checkbox" id="eliminarImagen" name="eliminarImagen" value="true" />
+                            Eliminar imagen actual
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label class="img-label" for="imagen">Subir / Cambiar imagen:</label>
+                <input type="file" id="imagen" name="imagen" accept="image/*" />
+                <div id="preview" style="margin-top:8px;">
+                    <img id="previewImg" src="#" alt="Preview" style="display:none;" />
+                </div>
+                <small class="help-block">Si subes una imagen, reemplazará la actual. Marca "Eliminar imagen actual" para borrarla.</small>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="save-btn"><i class="fas fa-save"></i> Actualizar</button>
             </div>
         </form>
     </section>
 </main>
+
 <script>
     const sidebar = document.getElementById('sidebar');
     const logoBtn = document.getElementById('logoBtn');
     logoBtn.addEventListener('click', () => {
         sidebar.classList.toggle('hide');
+    });
+
+    // Elementos para imagen
+    const imagenInput = document.getElementById('imagen');
+    const previewImg = document.getElementById('previewImg');
+    const previewContainer = document.getElementById('preview');
+    const eliminarCheckbox = document.getElementById('eliminarImagen');
+    const currentImg = document.getElementById('currentImg');
+
+    // Si el usuario selecciona un archivo, mostramos preview y desmarcamos "eliminar"
+    imagenInput.addEventListener('change', function (e) {
+        const file = e.target.files[0];
+        if (!file) {
+            previewImg.style.display = 'none';
+            return;
+        }
+        // Desmarcar eliminar si había sido marcado
+        if (eliminarCheckbox.checked) eliminarCheckbox.checked = false;
+
+        previewImg.src = URL.createObjectURL(file);
+        previewImg.style.display = 'inline-block';
+    });
+
+    // Si marca eliminar, limpiamos el input file y la preview
+    eliminarCheckbox.addEventListener('change', function (e) {
+        if (eliminarCheckbox.checked) {
+            // Clear file input
+            imagenInput.value = "";
+            // Hide preview
+            previewImg.src = "#";
+            previewImg.style.display = 'none';
+            // Optionally hide current image visually
+            // currentImg.style.opacity = '0.4';
+        } else {
+            // currentImg.style.opacity = '1';
+        }
     });
 </script>
 </body>

@@ -40,14 +40,16 @@
             <h1><i class="fas fa-plus"></i> Agregar Nuevo Producto</h1>
             <a href="/productos" class="volver-btn"><i class="fas fa-arrow-left"></i> Volver a la lista</a>
         </div>
-        <form th:action="@{/productos/guardar}" th:object="${producto}" method="post" class="form-panel">
+
+        <!-- IMPORTANTE: enctype multipart/form-data y name="imagen" en el input -->
+        <form th:action="@{/productos/guardar}" th:object="${producto}" method="post" class="form-panel" enctype="multipart/form-data">
             <div class="form-group">
                 <label for="nombre">Nombre:</label>
                 <input type="text" th:field="*{nombre}" id="nombre" required />
             </div>
             <div class="form-group">
-                <label for="descripcion">Descripción:</label>
-                <input type="text" th:field="*{descripcion}" id="descripcion" required />
+                <label for="descripcion">Categoría:</label>
+                <input type="text" th:field="*{descripcion}" id="descripcion" placeholder="ej. lacteos, carnes, fresa" required />
             </div>
             <div class="form-group">
                 <label for="cantidad">Cantidad:</label>
@@ -57,6 +59,20 @@
                 <label for="precio">Precio:</label>
                 <input type="number" th:field="*{precio}" id="precio" step="0.01" min="0" required />
             </div>
+
+            <div class="form-group">
+                <label for="unidadMedida">Unidad de medida:</label>
+                <input type="text" th:field="*{unidadMedida}" id="unidadMedida" placeholder="ej. kg, unidad, lt" />
+            </div>
+
+            <div class="form-group">
+                <label for="imagen">Imagen del producto:</label>
+                <input type="file" id="imagen" name="imagen" accept="image/*" />
+                <div id="preview" style="margin-top:8px;">
+                    <img id="previewImg" src="#" alt="Preview" style="max-width:150px; display:none;" />
+                </div>
+            </div>
+
             <div class="form-actions">
                 <button type="submit" class="save-btn"><i class="fas fa-save"></i> Guardar</button>
             </div>
@@ -68,6 +84,15 @@
     const logoBtn = document.getElementById('logoBtn');
     logoBtn.addEventListener('click', () => {
         sidebar.classList.toggle('hide');
+    });
+
+    // Previsualización de imagen
+    document.getElementById('imagen').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const img = document.getElementById('previewImg');
+        if (!file) { img.style.display = 'none'; return; }
+        img.src = URL.createObjectURL(file);
+        img.style.display = '';
     });
 </script>
 </body>

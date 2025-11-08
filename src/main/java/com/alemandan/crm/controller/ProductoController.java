@@ -1,13 +1,25 @@
 package com.alemandan.crm.controller;
 
 import com.alemandan.crm.model.Producto;
+import com.alemandan.crm.model.Categoria;
 import com.alemandan.crm.service.ProductoService;
+import com.alemandan.crm.repository.CategoriaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import org.springframework.web.multipart.MultipartFile;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,14 +28,25 @@ import java.util.Optional;
 @PreAuthorize("hasRole('ADMIN')")
 public class ProductoController {
 
+    private static final Logger logger = LoggerFactory.getLogger(ProductoController.class);
+
     @Autowired
     private ProductoService productoService;
 
-    // Listar todos los productos (activos e inactivos)
+    @Autowired
+    private CategoriaRepository categoriaRepository;
+
+    // Ruta base donde se guardan las subidas (configurable en application.properties)
+    @Value("${uploads.path:uploads}")
+    private String uploadsPath;
+
+    // Listar todos los productos (activos e inactivos) y pasar categorías
     @GetMapping
     public String listarProductos(Model model) {
         List<Producto> productos = productoService.listarProductos();
+        List<Categoria> categorias = categoriaRepository.findAll();
         model.addAttribute("productos", productos);
+        model.addAttribute("categorias", categorias);
         return "productos/listaprod";
     }
 
@@ -34,10 +57,74 @@ public class ProductoController {
         return "productos/nuevoprod";
     }
 
-    // Guardar nuevo producto
+    // Guardar nuevo producto (con manejo de categoría a partir de descripcion y subida de imagen)
     @PostMapping("/guardar")
-    public String guardarProducto(@ModelAttribute Producto producto) {
-        productoService.saveProducto(producto);
+    public String guardarProducto(@ModelAttribute Producto producto,
+                                  @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
+
+        logger.info("Entrando a guardarProducto. nombre='{}' descripcion='{}' unidadMedida='{}'",
+                producto.getNombre(), producto.getDescripcion(), producto.getUnidadMedida());
+
+        // 1) Manejo de categoría (usamos descripcion como nombre de categoria)
+        String categoriaNombre = producto.getDescripcion() != null ? producto.getDescripcion().trim() : null;
+        if (categoriaNombre != null && !categoriaNombre.isEmpty()) {
+            Optional<Categoria> catOpt = categoriaRepository.findByNombreIgnoreCase(categoriaNombre);
+            Categoria categoria = catOpt.orElseGet(() -> {
+                Categoria c = new Categoria();
+                c.setNombre(categoriaNombre);
+                return categoriaRepository.save(c);
+            });
+            producto.setCategoria(categoria);
+            producto.setDescripcion(categoriaNombre);
+        } else {
+            producto.setCategoria(null);
+        }
+
+        // 2) Guardar producto para obtener ID
+        Producto saved = productoService.saveProducto(producto);
+        logger.info("Producto guardado temporal con id={}", saved.getId());
+
+        // 3) Depuración del MultipartFile recibido
+        if (imagen == null) {
+            logger.warn("MultipartFile 'imagen' es NULL en la petición.");
+        } else {
+            logger.info("MultipartFile 'imagen' recibido: originalName='{}', size={}, empty={}",
+                    imagen.getOriginalFilename(), imagen.getSize(), imagen.isEmpty());
+        }
+
+        // 4) Guardar fichero si viene (USANDO Files.copy para evitar Part.write/contendor)
+        try {
+            if (imagen != null && !imagen.isEmpty() && imagen.getSize() > 0) {
+                String original = imagen.getOriginalFilename();
+                String safeName = (original != null && !original.trim().isEmpty())
+                        ? original.replaceAll("[\\\\/:*?\"<>|]+", "_")
+                        : java.util.UUID.randomUUID().toString() + ".img";
+
+                // Usar uploadsPath configurado y convertir a ruta ABSOLUTA
+                Path uploadDir = Paths.get(uploadsPath, "products", String.valueOf(saved.getId())).toAbsolutePath();
+                Files.createDirectories(uploadDir);
+
+                Path filePath = uploadDir.resolve(safeName);
+
+                // Copiar directamente desde el InputStream del multipart al archivo destino.
+                try (InputStream is = imagen.getInputStream()) {
+                    Files.copy(is, filePath, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                logger.info("Imagen guardada en disco (absoluta): {}", filePath.toAbsolutePath().toString());
+
+                // Guardamos la ruta pública relativa para Thymeleaf
+                String publicPath = "/uploads/products/" + saved.getId() + "/" + safeName;
+                saved.setImagePath(publicPath);
+                productoService.saveProducto(saved);
+                logger.info("Producto {} actualizado con imagePath={}", saved.getId(), saved.getImagePath());
+            } else {
+                logger.info("No se procesó imagen (null o vacía).");
+            }
+        } catch (Exception e) {
+            logger.error("Error guardando imagen del producto id=" + saved.getId(), e);
+        }
+
         return "redirect:/productos";
     }
 
@@ -47,17 +134,63 @@ public class ProductoController {
         Optional<Producto> producto = productoService.getProductoById(id);
         if (producto.isPresent()) {
             model.addAttribute("producto", producto.get());
+            model.addAttribute("categorias", categoriaRepository.findAll());
             return "productos/editarprod";
         } else {
-            // Si no existe, redirige al listado
             return "redirect:/productos";
         }
     }
 
-    // Actualizar producto
+    // Actualizar producto (acepta imagen nueva opcional)
     @PostMapping("/actualizar")
-    public String actualizarProducto(@ModelAttribute Producto producto) {
-        productoService.saveProducto(producto);
+    public String actualizarProducto(@ModelAttribute Producto producto,
+                                     @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
+
+        logger.info("Entrando a actualizarProducto. id='{}' nombre='{}'", producto.getId(), producto.getNombre());
+
+        String categoriaNombre = producto.getDescripcion() != null ? producto.getDescripcion().trim() : null;
+        if (categoriaNombre != null && !categoriaNombre.isEmpty()) {
+            Optional<Categoria> catOpt = categoriaRepository.findByNombreIgnoreCase(categoriaNombre);
+            Categoria categoria = catOpt.orElseGet(() -> {
+                Categoria c = new Categoria();
+                c.setNombre(categoriaNombre);
+                return categoriaRepository.save(c);
+            });
+            producto.setCategoria(categoria);
+            producto.setDescripcion(categoriaNombre);
+        } else {
+            producto.setCategoria(null);
+        }
+
+        Producto saved = productoService.saveProducto(producto);
+
+        try {
+            if (imagen != null && !imagen.isEmpty() && imagen.getSize() > 0) {
+                String original = imagen.getOriginalFilename();
+                String safeName = (original != null && !original.trim().isEmpty())
+                        ? original.replaceAll("[\\\\/:*?\"<>|]+", "_")
+                        : java.util.UUID.randomUUID().toString() + ".img";
+
+                Path uploadDir = Paths.get(uploadsPath, "products", String.valueOf(saved.getId())).toAbsolutePath();
+                Files.createDirectories(uploadDir);
+
+                Path filePath = uploadDir.resolve(safeName);
+                try (InputStream is = imagen.getInputStream()) {
+                    Files.copy(is, filePath, StandardCopyOption.REPLACE_EXISTING);
+                }
+
+                logger.info("Imagen actualizada en disco (absoluta): {}", filePath.toAbsolutePath().toString());
+
+                String publicPath = "/uploads/products/" + saved.getId() + "/" + safeName;
+                saved.setImagePath(publicPath);
+                productoService.saveProducto(saved);
+                logger.info("Producto {} actualizado con nueva imagePath={}", saved.getId(), saved.getImagePath());
+            } else {
+                logger.info("No se procesó imagen en actualización (null o vacía).");
+            }
+        } catch (Exception e) {
+            logger.error("Error actualizando imagen del producto id=" + saved.getId(), e);
+        }
         return "redirect:/productos";
     }
 
@@ -75,7 +208,7 @@ public class ProductoController {
         return "redirect:/productos";
     }
 
-    // NUEVO: Endpoint para búsqueda AJAX (empleado/caja)
+    // Endpoint para búsqueda AJAX (empleado/caja)
     @GetMapping("/api/productos/buscar")
     @ResponseBody
     public List<Producto> buscarProductos(@RequestParam(required = false) String term) {
