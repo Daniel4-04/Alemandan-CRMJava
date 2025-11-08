@@ -1,0 +1,75 @@
+/* Estilos para el grid de productos y las tarjetas */
+.productos-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    padding: 18px;
+}
+
+.producto-card {
+    width: 280px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    overflow: hidden;
+    display: flex;
+    gap: 12px;
+    padding: 12px;
+    align-items: flex-start;
+}
+
+.producto-card .card-img {
+    width: 100px;
+    height: 100px;
+    flex: 0 0 100px;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #f6f6f6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.producto-card .card-img img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.producto-card .card-body {
+    flex: 1;
+}
+
+.producto-card h4 {
+    margin: 0 0 6px 0;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #1b3a8a;
+    text-align: left;
+}
+
+.producto-card p {
+    margin: 4px 0;
+    font-size: 0.95rem;
+    color: #333;
+}
+
+.card-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+/* Acciones botones (puedes adaptar a tus clases existentes) */
+.btn-editar { color: #3971f7; text-decoration: none; }
+.btn-inactivar { color: #d9534f; text-decoration: none; }
+.btn-activar { color: #28a745; text-decoration: none; }
+
+/* Filtro wrap */
+.filter-wrap {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}

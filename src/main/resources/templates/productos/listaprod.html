@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link rel="stylesheet" th:href="@{/assets/css/dashboard_admin.css}">
     <link rel="stylesheet" th:href="@{/assets/css/panel_tablas.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/productos_cards.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
 <body>
@@ -36,52 +37,50 @@
 
 <main class="dashboard-main">
     <section class="panel-card">
-        <div class="panel-header">
+        <div class="panel-header" style="display:flex; justify-content:space-between; align-items:center;">
             <h1><i class="fas fa-boxes"></i> Productos / Inventario</h1>
-            <div class="panel-actions">
+            <div class="panel-actions" style="display:flex; align-items:center; gap:12px;">
+                <div class="filter-wrap">
+                    <label for="filtroCategoria">Filtrar por categoría:</label>
+                    <select id="filtroCategoria">
+                        <option value="">Todos</option>
+                        <option th:each="c : ${categorias}" th:value="${c.id}" th:text="${c.nombre}"></option>
+                    </select>
+                </div>
                 <a href="/productos/nuevo" class="add-btn"><i class="fas fa-plus"></i> Agregar Producto</a>
             </div>
         </div>
+
         <div class="tabla-bg">
-            <table class="tabla-panel">
-                <thead>
-                <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Cantidad</th>
-                    <th>Precio</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr th:each="producto : ${productos}">
-                    <td th:text="${producto.id}"></td>
-                    <td th:text="${producto.nombre}"></td>
-                    <td th:text="${producto.descripcion}"></td>
-                    <td th:text="${producto.cantidad}"></td>
-                    <td th:text="${producto.precio}"></td>
-                    <td>
-                        <span th:text="${producto.activo ? 'Activo' : 'Inactivo'}"
-                              th:classappend="${producto.activo ? 'estado-activo' : 'estado-inactivo'}"></span>
-                    </td>
-                    <td>
-                        <a th:href="@{'/productos/editar/' + ${producto.id}}" class="btn-editar"><i class="fas fa-edit"></i> Editar</a>
-                        <a th:if="${producto.activo}" th:href="@{'/productos/inactivar/' + ${producto.id}}"
-                           class="btn-inactivar"
-                           onclick="return confirm('¿Seguro que quieres inactivar este producto?');">
-                            <i class="fas fa-ban"></i> Inactivar
-                        </a>
-                        <a th:unless="${producto.activo}" th:href="@{'/productos/activar/' + ${producto.id}}"
-                           class="btn-activar"
-                           onclick="return confirm('¿Seguro que quieres activar este producto?');">
-                            <i class="fas fa-check"></i> Activar
-                        </a>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
+            <div class="productos-grid">
+                <div class="producto-card" th:each="producto : ${productos}"
+                     th:attr="data-categoria-id=${producto.categoria != null ? producto.categoria.id : ''}">
+                    <div class="card-img">
+                        <img th:if="${producto.imagePath != null}" th:src="${producto.imagePath}"
+                             th:alt="${producto.nombre}" onerror="this.onerror=null;this.src='/assets/img/default.png';" />
+                        <img th:unless="${producto.imagePath != null}" th:src="@{/assets/img/default.png}" th:alt="${producto.nombre}" />
+                    </div>
+                    <div class="card-body">
+                        <h4 th:text="${producto.nombre}">Nombre</h4>
+                        <p><strong>Categoría:</strong> <span th:text="${producto.descripcion}"></span></p>
+                        <p><strong>Cantidad:</strong> <span th:text="${producto.cantidad}"></span>
+                            <span th:text="' ' + (producto.unidadMedida != null ? producto.unidadMedida : '')"></span></p>
+                        <p><strong>Precio:</strong> $<span th:text="${producto.precio}"></span></p>
+                        <p><strong>Estado:</strong> <span th:text="${producto.activo ? 'Activo' : 'Inactivo'}"></span></p>
+                        <div class="card-actions">
+                            <a th:href="@{'/productos/editar/' + ${producto.id}}" class="btn-editar"><i class="fas fa-edit"></i> Editar</a>
+                            <a th:if="${producto.activo}" th:href="@{'/productos/inactivar/' + ${producto.id}}"
+                               class="btn-inactivar" onclick="return confirm('¿Seguro que quieres inactivar este producto?');">
+                                <i class="fas fa-ban"></i> Inactivar
+                            </a>
+                            <a th:unless="${producto.activo}" th:href="@{'/productos/activar/' + ${producto.id}}"
+                               class="btn-activar" onclick="return confirm('¿Seguro que quieres activar este producto?');">
+                                <i class="fas fa-check"></i> Activar
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </section>
 </main>
@@ -91,6 +90,20 @@
     const logoBtn = document.getElementById('logoBtn');
     logoBtn.addEventListener('click', () => {
         sidebar.classList.toggle('hide');
+    });
+
+    // Filtrar tarjetas por categoría (cliente-side)
+    const filtro = document.getElementById('filtroCategoria');
+    filtro.addEventListener('change', () => {
+        const selected = filtro.value;
+        document.querySelectorAll('.producto-card').forEach(card => {
+            const cat = card.getAttribute('data-categoria-id') || '';
+            if (!selected || selected === '' || selected === cat) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
     });
 </script>
 </body>

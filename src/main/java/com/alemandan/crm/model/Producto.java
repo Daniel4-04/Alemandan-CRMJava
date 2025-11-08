@@ -26,6 +26,17 @@ public class Producto {
     @Column(nullable = false)
     private Boolean activo = true;
 
+    // NUEVO: Unidad de medida (ej. kg, unidad, lt)
+    private String unidadMedida;
+
+    // NUEVO: Ruta pública/relativa de la imagen principal
+    private String imagePath;
+
+    // NUEVO: relación con categoría (opcional)
+    @ManyToOne
+    @JoinColumn(name = "categoria_id")
+    private Categoria categoria;
+
     // Getters y setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -44,4 +55,13 @@ public class Producto {
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+
+    public String getUnidadMedida() { return unidadMedida; }
+    public void setUnidadMedida(String unidadMedida) { this.unidadMedida = unidadMedida; }
+
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
+
+    public Categoria getCategoria() { return categoria; }
+    public void setCategoria(Categoria categoria) { this.categoria = categoria; }
 }
