@@ -52,6 +52,10 @@ document.addEventListener('DOMContentLoaded', function() {
         ticketFecha.textContent = "Fecha: " + new Date().toLocaleDateString();
     });
 
+    function formatMoney(n) {
+        return '$' + Number(n || 0).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
     function renderTicket() {
         // Si no hay productos, muestra vacío
         if (venta.productos.length === 0) {
@@ -60,26 +64,28 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             ticketProductos.innerHTML = '';
             venta.productos.forEach((prod, idx) => {
+                const lineSubtotal = (Number(prod.precio) || 0) * (Number(prod.cantidad) || 0);
+                const lineIva = lineSubtotal * ((Number(prod.iva) || 0) / 100);
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${prod.nombre}</td>
-                    <td>$${prod.precio.toFixed(2)}</td>
+                    <td>${formatMoney(prod.precio)}</td>
                     <td><input type="number" min="1" value="${prod.cantidad}" style="width:55px;"
                         data-index="${idx}" class="ticket-cantidad-input"></td>
-                    <td>$${(prod.precio * prod.cantidad).toFixed(2)}</td>
+                    <td>${formatMoney(lineSubtotal + lineIva)}</td>
                     <td><button class="ticket-remove-btn" data-index="${idx}"><i class="fas fa-trash"></i></button></td>
                 `;
                 ticketProductos.appendChild(tr);
             });
         }
-        // Subtotal, IVA, Total
-        let subtotal = venta.productos.reduce((acc, prod) => acc + prod.precio * prod.cantidad, 0);
-        let iva = subtotal * 0.19;
+        // Subtotal, IVA, Total (calculo por producto usando su iva individual)
+        let subtotal = venta.productos.reduce((acc, prod) => acc + (Number(prod.precio) || 0) * (Number(prod.cantidad) || 0), 0);
+        let iva = venta.productos.reduce((acc, prod) => acc + ((Number(prod.precio) || 0) * (Number(prod.cantidad) || 0)) * ((Number(prod.iva) || 0) / 100), 0);
         let total = subtotal + iva;
-        ticketSubtotal.textContent = `$${subtotal.toFixed(2)}`;
-        ticketIva.textContent = `$${iva.toFixed(2)}`;
-        ticketTotal.textContent = `$${total.toFixed(2)}`;
-        totalPagar.textContent = `$${total.toFixed(2)}`;
+        ticketSubtotal.textContent = formatMoney(subtotal);
+        ticketIva.textContent = formatMoney(iva);
+        ticketTotal.textContent = formatMoney(total);
+        totalPagar.textContent = formatMoney(total);
         // Habilitar finalizar si hay productos y método
         if (venta.productos.length > 0 && venta.metodoPago) {
             btnFinalizarCompra.classList.add('enabled');
@@ -101,17 +107,23 @@ document.addEventListener('DOMContentLoaded', function() {
         axios.get(`/api/productos/buscar?term=${encodeURIComponent(term)}`)
             .then(res => {
                 productosCache = res.data;
-                if (productosCache.length === 0) {
+                if (!Array.isArray(productosCache) || productosCache.length === 0) {
                     resultadosBusqueda.innerHTML = '<div class="resultado-producto">No se encontraron productos</div>';
                     resultadosBusqueda.style.display = '';
                 } else {
                     resultadosBusqueda.innerHTML = productosCache.map(prod => `
                         <div class="resultado-producto" data-id="${prod.id}">
-                            <b>${prod.nombre}</b> <span style="color:#3971f7;">(Stock: ${prod.cantidad})</span> <span>$${prod.precio.toFixed(2)}</span>
+                            <b>${prod.nombre}</b> <span style="color:#3971f7;">(Stock: ${prod.cantidad})</span>
+                            <span>${formatMoney(prod.precio)}</span>
+                            <small style="margin-left:8px;color:#666">${(prod.iva || 0)}%</small>
                         </div>
                     `).join('');
                     resultadosBusqueda.style.display = '';
                 }
+            })
+            .catch(() => {
+                resultadosBusqueda.innerHTML = '<div class="resultado-producto">Error al buscar productos</div>';
+                resultadosBusqueda.style.display = '';
             });
     });
 
@@ -120,17 +132,23 @@ document.addEventListener('DOMContentLoaded', function() {
         axios.get(`/api/productos/buscar?term=`)
             .then(res => {
                 productosCache = res.data;
-                if (productosCache.length === 0) {
+                if (!Array.isArray(productosCache) || productosCache.length === 0) {
                     resultadosBusqueda.innerHTML = '<div class="resultado-producto">No se encontraron productos</div>';
                     resultadosBusqueda.style.display = '';
                 } else {
                     resultadosBusqueda.innerHTML = productosCache.map(prod => `
                         <div class="resultado-producto" data-id="${prod.id}">
-                            <b>${prod.nombre}</b> <span style="color:#3971f7;">(Stock: ${prod.cantidad})</span> <span>$${prod.precio.toFixed(2)}</span>
+                            <b>${prod.nombre}</b> <span style="color:#3971f7;">(Stock: ${prod.cantidad})</span>
+                            <span>${formatMoney(prod.precio)}</span>
+                            <small style="margin-left:8px;color:#666">${(prod.iva || 0)}%</small>
                         </div>
                     `).join('');
                     resultadosBusqueda.style.display = '';
                 }
+            })
+            .catch(() => {
+                resultadosBusqueda.innerHTML = '<div class="resultado-producto">Error al listar productos</div>';
+                resultadosBusqueda.style.display = '';
             });
     });
 
@@ -140,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!prodDiv) return;
         const prodId = prodDiv.getAttribute('data-id');
         const prod = productosCache.find(p => p.id == prodId);
+        if (!prod) return;
         // Ver si ya está en ticket
         if (venta.productos.some(p => p.id == prod.id)) {
             ventaError.textContent = "El producto ya fue agregado al ticket";
@@ -148,13 +167,16 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         // Validar stock
-        if (prod.cantidad < 1) {
+        if ((prod.cantidad || 0) < 1) {
             ventaError.textContent = "No hay suficiente stock de este producto";
             ventaError.style.display = "";
             setTimeout(() => ventaError.style.display = "none", 2000);
             return;
         }
-        venta.productos.push({ ...prod, cantidad: 1 });
+        // Asegurar que iva esté definido (0 si es null) y precio
+        const ivaVal = prod.iva == null ? 0 : Number(prod.iva);
+        const precioVal = prod.precio == null ? 0 : Number(prod.precio);
+        venta.productos.push({ id: prod.id, nombre: prod.nombre, cantidad: 1, iva: ivaVal, precio: precioVal });
         resultadosBusqueda.innerHTML = '';
         resultadosBusqueda.style.display = 'none';
         inputBuscarProducto.value = '';
@@ -165,20 +187,25 @@ document.addEventListener('DOMContentLoaded', function() {
     ticketProductos.addEventListener('input', function(e) {
         if (e.target.classList.contains('ticket-cantidad-input')) {
             const idx = e.target.getAttribute('data-index');
-            let qty = parseInt(e.target.value);
+            let qty = parseInt(e.target.value, 10);
             if (isNaN(qty) || qty < 1) qty = 1;
             // Validar stock con AJAX
             const prod = venta.productos[idx];
             axios.get(`/api/productos/buscar?term=${encodeURIComponent(prod.nombre)}`)
                 .then(res => {
                     const prodActual = res.data.find(p => p.id == prod.id);
-                    if (qty > prodActual.cantidad) {
+                    if (prodActual && qty > prodActual.cantidad) {
                         ventaError.textContent = `No hay suficiente stock para "${prod.nombre}". Disponible: ${prodActual.cantidad}`;
                         ventaError.style.display = "";
                         setTimeout(() => ventaError.style.display = "none", 2000);
                         qty = prodActual.cantidad;
                         e.target.value = qty;
                     }
+                    venta.productos[idx].cantidad = qty;
+                    renderTicket();
+                })
+                .catch(() => {
+                    // Si falla la validación remota, aplicar el cambio localmente
                     venta.productos[idx].cantidad = qty;
                     renderTicket();
                 });
@@ -204,12 +231,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Finalizar compra AJAX
+    // Finalizar compra AJAX (ahora abre recibo PDF si backend lo devuelve en base64)
     btnFinalizarCompra.addEventListener('click', function() {
         btnFinalizarCompra.disabled = true;
         btnFinalizarCompra.classList.remove('enabled');
         ventaExitosa.style.display = "none";
         ventaError.style.display = "none";
+
         // Prepara datos
         const ventaPayload = {
             detalles: venta.productos.map(p => ({
@@ -219,9 +247,28 @@ document.addEventListener('DOMContentLoaded', function() {
             metodoPago: venta.metodoPago
         };
         console.log("Enviando venta:", ventaPayload);
-        axios.post('/api/ventas/registrar', ventaPayload)
+
+        axios.post('/ventas/api/ventas/registrar', ventaPayload)
             .then(res => {
                 if (res.data.success) {
+                    // Si el backend devolvió el PDF en base64, abrir en nueva pestaña
+                    if (res.data.receiptBase64) {
+                        try {
+                            const pdfBase64 = res.data.receiptBase64;
+                            const linkSource = "data:application/pdf;base64," + pdfBase64;
+                            const downloadLink = document.createElement("a");
+                            downloadLink.href = linkSource;
+                            const ventaId = res.data.ventaId ? res.data.ventaId.toString().padStart(4, "0") : "recibo";
+                            downloadLink.download = "recibo_venta_" + ventaId + ".pdf";
+                            downloadLink.target = "_blank";
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                        } catch (err) {
+                            console.warn("No se pudo abrir el recibo en PDF automáticamente:", err);
+                        }
+                    }
+
                     ventaExitosa.textContent = "¡Venta realizada exitosamente!";
                     ventaExitosa.style.display = "block";
                     ticketNumVenta.textContent = "N° Venta: " + res.data.ventaId.toString().padStart(4, "0");

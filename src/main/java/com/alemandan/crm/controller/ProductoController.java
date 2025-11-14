@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -54,6 +55,7 @@ public class ProductoController {
     @GetMapping("/nuevo")
     public String mostrarFormularioNuevoProducto(Model model) {
         model.addAttribute("producto", new Producto());
+        model.addAttribute("categorias", categoriaRepository.findAll());
         return "productos/nuevoprod";
     }
 
@@ -62,8 +64,11 @@ public class ProductoController {
     public String guardarProducto(@ModelAttribute Producto producto,
                                   @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
 
-        logger.info("Entrando a guardarProducto. nombre='{}' descripcion='{}' unidadMedida='{}'",
-                producto.getNombre(), producto.getDescripcion(), producto.getUnidadMedida());
+        logger.info("Entrando a guardarProducto. nombre='{}' descripcion='{}' unidadMedida='{}' iva='{}'",
+                producto.getNombre(), producto.getDescripcion(), producto.getUnidadMedida(), producto.getIva());
+
+        // Asegurar IVA no nulo
+        if (producto.getIva() == null) producto.setIva(BigDecimal.ZERO);
 
         // 1) Manejo de categoría (usamos descripcion como nombre de categoria)
         String categoriaNombre = producto.getDescripcion() != null ? producto.getDescripcion().trim() : null;
@@ -141,12 +146,16 @@ public class ProductoController {
         }
     }
 
-    // Actualizar producto (acepta imagen nueva opcional)
+    // Actualizar producto (acepta imagen nueva opcional y checkbox para eliminar la actual)
     @PostMapping("/actualizar")
     public String actualizarProducto(@ModelAttribute Producto producto,
-                                     @RequestParam(value = "imagen", required = false) MultipartFile imagen) {
+                                     @RequestParam(value = "imagen", required = false) MultipartFile imagen,
+                                     @RequestParam(value = "eliminarImagen", required = false) Boolean eliminarImagen) {
 
-        logger.info("Entrando a actualizarProducto. id='{}' nombre='{}'", producto.getId(), producto.getNombre());
+        logger.info("Entrando a actualizarProducto. id='{}' nombre='{}' iva='{}'", producto.getId(), producto.getNombre(), producto.getIva());
+
+        // Asegurar IVA no nulo
+        if (producto.getIva() == null) producto.setIva(BigDecimal.ZERO);
 
         String categoriaNombre = producto.getDescripcion() != null ? producto.getDescripcion().trim() : null;
         if (categoriaNombre != null && !categoriaNombre.isEmpty()) {
@@ -163,6 +172,29 @@ public class ProductoController {
         }
 
         Producto saved = productoService.saveProducto(producto);
+
+        // Si se pidió eliminar la imagen actual, intentamos borrarla y limpiar el path
+        if (Boolean.TRUE.equals(eliminarImagen) && saved.getImagePath() != null) {
+            try {
+                // imagePath en formato "/uploads/products/{id}/{filename}"
+                String imgPath = saved.getImagePath();
+                if (imgPath.startsWith("/")) imgPath = imgPath.substring(1); // quitar slash inicial
+                Path fsPath = Paths.get(imgPath); // relativa a la raíz del servidor estática, no absoluta
+                // Intentar borrar en uploadsPath si existe
+                Path candidate = Paths.get(uploadsPath).resolve(fsPath).toAbsolutePath();
+                if (Files.exists(candidate)) {
+                    Files.deleteIfExists(candidate);
+                    logger.info("Imagen borrada de disco: {}", candidate);
+                } else {
+                    logger.warn("No se encontró archivo para eliminar en: {}", candidate);
+                }
+            } catch (Exception e) {
+                logger.error("Error al eliminar imagen antigua del producto " + saved.getId(), e);
+            }
+            saved.setImagePath(null);
+            productoService.saveProducto(saved);
+            logger.info("Producto {} imagePath limpiado por petición de eliminación.", saved.getId());
+        }
 
         try {
             if (imagen != null && !imagen.isEmpty() && imagen.getSize() > 0) {

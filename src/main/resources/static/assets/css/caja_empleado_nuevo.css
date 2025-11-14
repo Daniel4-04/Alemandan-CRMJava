@@ -1,3 +1,5 @@
+/* Estilos para la caja (modificado: evitar overflow de los botones de pago) */
+
 body {
     background: #f6f8fd;
 }
@@ -21,6 +23,7 @@ body {
     box-shadow: 0 8px 32px rgba(32,72,198,0.11);
     padding: 38px 32px 34px 32px;
     min-width: 320px;
+    box-sizing: border-box;
 }
 
 .btn-iniciar-compra {
@@ -140,25 +143,35 @@ body {
     font-weight: 700;
     margin-bottom: 10px;
 }
+
+/* <-- CAMBIO PRINCIPAL: permitir wrap y evitar overflow de botones de pago --> */
 .metodo-pago-opciones {
     display: flex;
-    gap: 18px;
+    gap: 12px;
     margin-bottom: 14px;
+    flex-wrap: wrap;          /* permite que los botones se acomoden en varias filas */
+    align-items: center;
 }
+
+/* Ajustes para los botones de pago para que no rompan el layout */
 .pago-btn {
     color: #2048c6;
     background: #eaf2ff;
-    padding: 9px 24px;
+    padding: 9px 18px;        /* reducido ligeramente el padding para mejor ajuste */
     border-radius: 8px;
     font-weight: 500;
     text-decoration: none;
     border: none;
     cursor: pointer;
     transition: background 0.17s;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: 7px;
-    font-size: 1.09em;
+    font-size: 1.05em;        /* ligeramente menor para caber mejor */
+    white-space: nowrap;      /* evitar wrap interno del texto del botón */
+    flex: 0 1 auto;           /* permitir que los botones se reduzcan si hace falta */
+    min-width: 0;             /* permite que el flex shrink funcione correctamente */
+    box-sizing: border-box;
 }
 .pago-btn:disabled {
     background: #dce7fa;
@@ -170,6 +183,7 @@ body {
     color: #fff;
 }
 
+/* Btn finalizar */
 .btn-finalizar {
     width: 100%;
     background: #dce7fa;
@@ -320,5 +334,13 @@ body {
         font-size: 0.92em;
         flex-direction: column;
         gap: 2px;
+    }
+    /* Ajustes móviles: hacer los botones de pago más compactos */
+    .metodo-pago-opciones {
+        gap: 8px;
+    }
+    .pago-btn {
+        padding: 8px 10px;
+        font-size: 0.98em;
     }
 }

@@ -7,16 +7,19 @@ import com.alemandan.crm.repository.VentaRepository;
 import com.alemandan.crm.repository.ProductoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashMap;
 import java.util.stream.Collectors;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
 
 @Service
 public class VentaService {
@@ -27,34 +30,118 @@ public class VentaService {
     @Autowired
     private ProductoRepository productoRepository;
 
-    public String registrarVenta(Venta venta) {
+    /**
+     * Nuevo: procesa y guarda la venta.
+     * - Valida stock y cantidades.
+     * - Actualiza stock en Producto.
+     * - Calcula precioUnitario, ivaRate e ivaMonto por DetalleVenta.
+     * - Calcula subtotal, iva total y total de la venta.
+     * - Persiste la venta con sus detalles y devuelve la entidad guardada (con id).
+     *
+     * Lanza IllegalArgumentException en caso de validación fallida.
+     */
+    @Transactional
+    public Venta procesarYGuardarVenta(Venta venta) {
         venta.setFecha(LocalDateTime.now());
-        double total = 0.0;
 
-        // Validación de stock
+        if (venta.getDetalles() == null || venta.getDetalles().isEmpty()) {
+            throw new IllegalArgumentException("La venta no contiene productos.");
+        }
+
+        // Validación de stock y cantidades
         for (DetalleVenta detalle : venta.getDetalles()) {
-            Producto producto = productoRepository.findById(detalle.getProducto().getId()).orElseThrow();
-            if (detalle.getCantidad() > producto.getCantidad()) {
-                return "No hay suficiente stock del producto '" + producto.getNombre() + "'. Disponible: " + producto.getCantidad();
+            if (detalle.getProducto() == null || detalle.getProducto().getId() == null) {
+                throw new IllegalArgumentException("Producto inválido en detalle.");
             }
-            if (detalle.getCantidad() < 1) {
-                return "La cantidad del producto '" + producto.getNombre() + "' debe ser al menos 1.";
+            Producto producto = productoRepository.findById(detalle.getProducto().getId()).orElse(null);
+            if (producto == null) {
+                throw new IllegalArgumentException("Producto con id " + detalle.getProducto().getId() + " no encontrado.");
+            }
+            int qty = detalle.getCantidad() == null ? 0 : detalle.getCantidad();
+            if (qty < 1) {
+                throw new IllegalArgumentException("La cantidad del producto '" + producto.getNombre() + "' debe ser al menos 1.");
+            }
+            int available = producto.getCantidad() == null ? 0 : producto.getCantidad();
+            if (qty > available) {
+                throw new IllegalArgumentException("No hay suficiente stock del producto '" + producto.getNombre() + "'. Disponible: " + available);
             }
         }
 
-        // Si pasó validación, realiza la venta
+        // Procesamiento
+        BigDecimal subtotal = BigDecimal.ZERO;
+        BigDecimal totalIva = BigDecimal.ZERO;
+
+        List<DetalleVenta> detallesPersist = new ArrayList<>();
+
         for (DetalleVenta detalle : venta.getDetalles()) {
             Producto producto = productoRepository.findById(detalle.getProducto().getId()).orElseThrow();
-            producto.setCantidad(producto.getCantidad() - detalle.getCantidad());
+
+            // Actualizar stock
+            int currentStock = producto.getCantidad() == null ? 0 : producto.getCantidad();
+            int qty = detalle.getCantidad() == null ? 0 : detalle.getCantidad();
+            producto.setCantidad(currentStock - qty);
             productoRepository.save(producto);
 
-            detalle.setPrecioUnitario(producto.getPrecio());
-            total += detalle.getCantidad() * producto.getPrecio();
+            // Determinar precioUnitario (Detalle puede venir con precioUnitario, si no usamos producto.precio)
+            BigDecimal precioUnitario;
+            if (detalle.getPrecioUnitario() != null) {
+                precioUnitario = detalle.getPrecioUnitario();
+            } else {
+                precioUnitario = producto.getPrecio() == null ? BigDecimal.ZERO : BigDecimal.valueOf(producto.getPrecio());
+            }
+
+            // Subtotal de la línea
+            BigDecimal lineaSubtotal = precioUnitario.multiply(BigDecimal.valueOf(qty));
+
+            // IVA aplicado: tomar producto.getIva() (BigDecimal) si está; si es null -> 0
+            BigDecimal ivaRate = producto.getIva() == null ? BigDecimal.ZERO : producto.getIva();
+
+            // Calcular monto de IVA de la línea (redondeo a 2 decimales)
+            BigDecimal ivaLinea = lineaSubtotal.multiply(ivaRate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+
+            // Setear valores en DetalleVenta y relación con venta
+            detalle.setPrecioUnitario(precioUnitario);
+            detalle.setIvaRate(ivaRate);
+            detalle.setIvaMonto(ivaLinea);
             detalle.setVenta(venta);
+
+            subtotal = subtotal.add(lineaSubtotal);
+            totalIva = totalIva.add(ivaLinea);
+
+            detallesPersist.add(detalle);
         }
+
+        BigDecimal subtotalRounded = subtotal.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal ivaRounded = totalIva.setScale(2, RoundingMode.HALF_UP);
+        BigDecimal total = subtotalRounded.add(ivaRounded).setScale(2, RoundingMode.HALF_UP);
+
+        venta.setSubtotal(subtotalRounded);
+        venta.setIva(ivaRounded);
         venta.setTotal(total);
-        ventaRepository.save(venta);
-        return null; // null = venta exitosa
+        venta.setDetalles(detallesPersist);
+
+        // Persistir la venta
+        Venta saved = ventaRepository.save(venta);
+        return saved;
+    }
+
+    /**
+     * Método legacy compat: mantiene la antigua firma registrarVenta(Venta) que retornaba
+     * null en caso de éxito o mensaje con error.
+     * Internamente delega a procesarYGuardarVenta y captura excepciones para devolver mensajes.
+     */
+    @Transactional
+    public String registrarVenta(Venta venta) {
+        try {
+            Venta saved = procesarYGuardarVenta(venta);
+            // exitoso
+            return null;
+        } catch (IllegalArgumentException e) {
+            return e.getMessage();
+        } catch (Exception e) {
+            // no exponer detalles sensibles, pero devolver algo útil
+            return "Error inesperado al procesar la venta: " + e.getMessage();
+        }
     }
 
     // Buscar ventas por usuario
@@ -77,7 +164,7 @@ public class VentaService {
         }
         // Filtrado por producto
         if (productoId != null) {
-            ventas = ventas.stream().filter(v -> v.getDetalles().stream().anyMatch(d -> d.getProducto().getId().equals(productoId))).collect(Collectors.toList());
+            ventas = ventas.stream().filter(v -> v.getDetalles().stream().anyMatch(d -> d.getProducto() != null && productoId.equals(d.getProducto().getId()))).collect(Collectors.toList());
         }
         // Filtrado por método de pago
         if (metodoPago != null && !metodoPago.isEmpty()) {
@@ -113,12 +200,11 @@ public class VentaService {
         // Total de ventas
         resumen.put("totalVentas", ventaRepository.count());
         // Monto total de ventas
-        double montoTotal = ventaRepository.findAll()
+        BigDecimal montoTotal = ventaRepository.findAll()
                 .stream()
-                .mapToDouble(Venta::getTotal)
-                .sum();
+                .map(v -> v.getTotal() == null ? BigDecimal.ZERO : v.getTotal())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
         resumen.put("montoTotal", montoTotal);
-
         // Fecha actual en formato ISO8601 (string compatible con frontend y formateo)
         OffsetDateTime fechaActual = OffsetDateTime.now(ZoneOffset.UTC);
         resumen.put("fecha", fechaActual.toString());

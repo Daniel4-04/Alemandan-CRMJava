@@ -65,9 +65,19 @@
                     </select>
                     <div class="ventas-filtros-actions">
                         <button type="submit" class="ventas-filtrar-btn"><i class="fas fa-filter"></i> Filtrar</button>
+
+                        <!-- Botón que usa el endpoint existente para exportar resumen simple a PDF (si lo mantienes) -->
                         <a th:href="@{/admin/ventas/exportar-pdf(
                                 fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
-                            )}" class="ventas-export-btn"><i class="fas fa-file-pdf"></i> Exportar PDF</a>
+                            )}" class="ventas-export-btn"><i class="fas fa-file-pdf"></i> Exportar PDF (resumen)</a>
+
+                        <!-- Botón que llama al nuevo servicio de reporte avanzado (pasa productoId para top vendedores por producto) -->
+                        <a th:href="@{/ventas/reporte/pdf(
+                                from=${param.fechaInicio}, to=${param.fechaFin}, productoId=${param.productoId}
+                            )}" target="_blank" class="ventas-export-btn">
+                            <i class="fas fa-file-pdf"></i> Generar Informe Avanzado (PDF)
+                        </a>
+
                         <a th:href="@{/admin/ventas/exportar-excel(
                                 fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
                             )}" class="ventas-export-btn"><i class="fas fa-file-excel"></i> Exportar Excel</a>
@@ -88,8 +98,8 @@
                         <tbody>
                         <tr th:each="v : ${ventas}">
                             <td th:text="${v.id}"></td>
-                            <td th:text="${v.fecha}"></td>
-                            <td th:text="${v.usuario.nombre}"></td>
+                            <td th:text="${#temporals.format(v.fecha, 'yyyy-MM-dd HH:mm')}"></td>
+                            <td th:text="${v.usuario != null ? v.usuario.nombre : 'N/A'}"></td>
                             <td th:text="${v.metodoPago}"></td>
                             <td th:text="${v.total}"></td>
                             <td>
@@ -102,10 +112,13 @@
                     </table>
                 </div>
             </div>
+
             <div class="ventas-chart-card">
                 <h3><i class="fas fa-users"></i> Ventas por empleado</h3>
                 <canvas id="chartVentasEmpleado" width="320" height="180"></canvas>
-                <button id="exportChartPdf" class="chart-export-btn"><i class="fas fa-file-pdf"></i> Exportar gráfica a PDF</button>
+                <div style="margin-top:10px;">
+                    <button id="exportChartPdf" class="chart-export-btn"><i class="fas fa-file-pdf"></i> Exportar gráfica a PDF</button>
+                </div>
             </div>
         </div>
     </section>
@@ -113,16 +126,20 @@
 
 <script th:inline="javascript">
     /*<![CDATA[*/
-    // Prepara datos acumulados por empleado para la gráfica
+    // Construir los totales por empleado INYECTANDO una pequeña porción de JS por cada venta.
+    // Esto evita la expresión de proyección inválida y produce un JS válido siempre.
     var empleadosMap = {};
     /*[# th:each="v : ${ventas}"]*/
-    var empleado = /*[[${v.usuario.nombre}]]*/ "";
-    var total = /*[[${v.total}]]*/ 0;
-    empleadosMap[empleado] = (empleadosMap[empleado] || 0) + total;
+    // Para cada venta se inyectan estas dos variables y se acumula en el mapa.
+    var __empNombre = /*[[${v.usuario != null ? v.usuario.nombre : 'Sin nombre'}]]*/ "Sin nombre";
+    var __empTotal = /*[[${v.total}]]*/ 0;
+    empleadosMap[__empNombre] = (empleadosMap[__empNombre] || 0) + (__empTotal || 0);
     /*[/]*/
-    var labels = Object.keys(empleadosMap);
-    var data = Object.values(empleadosMap);
 
+    var labels = Object.keys(empleadosMap);
+    var data = labels.map(function(k){ return empleadosMap[k]; });
+
+    // Crear gráfica con Chart.js
     var ctx = document.getElementById('chartVentasEmpleado').getContext('2d');
     var chartEmpleado = new Chart(ctx, {
         type: 'bar',
@@ -131,11 +148,20 @@
             datasets: [{
                 label: 'Total ventas',
                 data: data,
-                backgroundColor: 'rgba(54, 162, 235, 0.5)'
+                backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                borderColor: 'rgba(54, 162, 235, 1)',
+                borderWidth: 1
             }]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { beginAtZero: true }
+            }
         }
     });
 
+    // Exportar la imagen del canvas a PDF (POST al endpoint backend que ya tienes: /admin/ventas/exportar-grafico-pdf)
     document.getElementById('exportChartPdf').onclick = function() {
         var canvas = document.getElementById('chartVentasEmpleado');
         var imgData = canvas.toDataURL('image/png');

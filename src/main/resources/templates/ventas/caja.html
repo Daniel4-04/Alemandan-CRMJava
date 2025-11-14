@@ -1,77 +1,109 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
     <title>Caja | Alemandan CRM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="/assets/css/dashboard_empleado.css">
-    <link rel="stylesheet" href="/assets/css/caja_empleado_nuevo.css">
+
+    <!-- CSRF tokens expuestos para uso por JavaScript (axios) -->
+    <meta name="_csrf" th:content="${_csrf.token}" />
+    <meta name="_csrf_header" th:content="${_csrf.headerName}" />
+
+    <link rel="stylesheet" th:href="@{/assets/css/dashboard_empleado.css}">
+    <link rel="stylesheet" th:href="@{/assets/css/caja_empleado_nuevo.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Axios -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/assets/js/caja_empleado_nuevo.js"></script>
+
+    <!-- Setup CSRF for axios (runs before your main JS) -->
+    <script>
+        (function setupCsrfForAxios() {
+            try {
+                var tokenMeta = document.querySelector('meta[name="_csrf"]');
+                var headerMeta = document.querySelector('meta[name="_csrf_header"]');
+                if (tokenMeta && headerMeta && window.axios) {
+                    var token = tokenMeta.getAttribute('content');
+                    var header = headerMeta.getAttribute('content');
+                    axios.defaults.headers.common[header] = token;
+                }
+            } catch (e) {
+                console.warn('CSRF setup error', e);
+            }
+        })();
+    </script>
+
+    <!-- App JS (will run after DOM ready in the file) -->
+    <script th:src="@{/assets/js/caja_empleado_nuevo.js}" defer></script>
 </head>
 <body>
 <header class="empleado-header">
     <div class="header-left">
-        <img src="/assets/img/Alogo.png" alt="Alemandan Logo" class="empleado-logo" id="logoBtn" title="Menú">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="empleado-logo" id="logoBtn" title="Menú">
         <span class="empleado-title">EMPLEADO</span>
     </div>
     <div class="header-actions">
-        <form action="/logout" method="post" class="header-btn logout-form">
-            <input type="hidden" name="_csrf" th:value="${_csrf.token}" />
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
             <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
         </form>
     </div>
 </header>
+
 <aside class="sidebar hide" id="sidebar">
     <nav>
         <ul>
-            <li><a href="/dashboard"><i class="fas fa-home"></i> Inicio</a></li>
-            <li><a href="/ventas/caja" class="active"><i class="fas fa-cash-register"></i> Caja</a></li>
-            <li><a href="/ventas/mis-ventas"><i class="fas fa-receipt"></i> Mis ventas</a></li>
+            <li><a th:href="@{/dashboard}"><i class="fas fa-home"></i> Inicio</a></li>
+            <li><a th:href="@{/ventas/caja}" class="active"><i class="fas fa-cash-register"></i> Caja</a></li>
+            <li><a th:href="@{/ventas/mis-ventas}"><i class="fas fa-receipt"></i> Mis ventas</a></li>
         </ul>
     </nav>
 </aside>
+
 <main class="dashboard-main">
     <section class="caja-panel">
         <div class="caja-izquierda">
-            <button class="btn-iniciar-compra" id="btnIniciarCompra"><i class="fas fa-play"></i> Iniciar Nueva Compra</button>
+            <button class="btn-iniciar-compra" id="btnIniciarCompra"><i class="fas fa-play"></i> Iniciar Nueva Venta</button>
+
             <div class="caja-buscar">
                 <h3><i class="fas fa-barcode"></i> Escanear Producto</h3>
                 <input type="text" id="inputBuscarProducto" class="input-buscar" placeholder="Código o nombre del producto" autocomplete="off" disabled>
                 <button type="button" id="btnBuscarManual" class="buscar-manual-btn" disabled>
                     <i class="fas fa-search"></i> Buscar Manualmente
                 </button>
-                <div id="resultadosBusqueda" class="resultados-busqueda"></div>
+                <div id="resultadosBusqueda" class="resultados-busqueda" aria-live="polite"></div>
             </div>
+
             <div class="caja-total">
                 <h3><i class="fas fa-money-bill-wave"></i> Total a Pagar</h3>
                 <span class="total-pagar" id="totalPagar">$0</span>
-                <div class="metodo-pago-opciones">
+
+                <div class="metodo-pago-opciones" role="group" aria-label="Métodos de pago">
                     <button type="button" class="pago-btn" data-metodo="Efectivo" disabled><i class="fas fa-money-bill"></i> Efectivo</button>
                     <button type="button" class="pago-btn" data-metodo="Tarjeta" disabled><i class="fas fa-credit-card"></i> Tarjeta</button>
                     <button type="button" class="pago-btn" data-metodo="Transferencia" disabled><i class="fas fa-exchange-alt"></i> Transferencia</button>
                 </div>
+
                 <button id="btnFinalizarCompra" class="btn-finalizar" disabled>
                     <i class="fas fa-check-circle"></i> Finalizar Compra
                 </button>
             </div>
         </div>
+
         <div class="caja-derecha">
             <div class="ticket-venta-card">
                 <h2><i class="fas fa-receipt"></i> Ticket de Venta</h2>
+
                 <div class="ticket-header">
                     <span id="ticketFecha">Fecha: --/--/----</span>
                     <span id="ticketCajero">
-                        <!-- El nombre del empleado se inyecta desde el backend -->
-                        Cajero: <span id="cajeroNombre">
-                            <!-- Si usas Thymeleaf, usa: th:text="${empleado.nombre}" -->
-                        </span>
+                        Cajero: <span id="cajeroNombre" th:text="${empleado != null ? empleado.nombre : ''}">---</span>
                     </span>
                     <span id="ticketNumVenta">N° Venta: ----</span>
                 </div>
+
                 <div class="ticket-table-bg">
-                    <table class="ticket-table">
+                    <table class="ticket-table" role="table" aria-label="Detalle de productos">
                         <thead>
                         <tr>
                             <th>Producto</th>
@@ -90,23 +122,29 @@
                         </tbody>
                     </table>
                 </div>
-                <div class="ticket-resumen">
+
+                <div class="ticket-resumen" aria-live="polite">
                     <div>Subtotal: <span id="ticketSubtotal">$0</span></div>
-                    <div>IVA (19%): <span id="ticketIva">$0</span></div>
+                    <div>IVA: <span id="ticketIva">$0</span></div>
                     <div class="ticket-total">Total: <span id="ticketTotal">$0</span></div>
                 </div>
+
                 <div id="ventaExitosa" class="msg-success" style="display:none;">¡Venta realizada exitosamente!</div>
                 <div id="ventaError" class="msg-error" style="display:none;"></div>
             </div>
         </div>
     </section>
 </main>
+
 <script>
+    // Toggle sidebar
     const sidebar = document.getElementById('sidebar');
     const logoBtn = document.getElementById('logoBtn');
-    logoBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('hide');
-    });
+    if (logoBtn) {
+        logoBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hide');
+        });
+    }
 </script>
 </body>
 </html>

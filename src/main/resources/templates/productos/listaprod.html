@@ -62,11 +62,31 @@
                     </div>
                     <div class="card-body">
                         <h4 th:text="${producto.nombre}">Nombre</h4>
-                        <p><strong>Categoría:</strong> <span th:text="${producto.descripcion}"></span></p>
-                        <p><strong>Cantidad:</strong> <span th:text="${producto.cantidad}"></span>
-                            <span th:text="' ' + (producto.unidadMedida != null ? producto.unidadMedida : '')"></span></p>
-                        <p><strong>Precio:</strong> $<span th:text="${producto.precio}"></span></p>
-                        <p><strong>Estado:</strong> <span th:text="${producto.activo ? 'Activo' : 'Inactivo'}"></span></p>
+
+                        <!-- Categoría: muestra el nombre real de la categoría -->
+                        <p><strong>Categoría:</strong>
+                            <span th:text="${producto.categoria != null ? producto.categoria.nombre : 'Sin categoría'}">Categoria</span>
+                        </p>
+
+                        <!-- Cantidad -->
+                        <p>
+                            <strong>Cantidad:</strong>
+                            <span th:text="${producto.cantidad}">0</span>
+                        </p>
+
+                        <!-- Medida: nueva línea llamada "Medida", maneja String o entidad -->
+                        <p>
+                            <strong>Medida:</strong>
+                            <span th:text="${producto.unidadMedida == null ? '-' :
+                                           (producto.unidadMedida instanceof T(java.lang.String) ? producto.unidadMedida :
+                                            (producto.unidadMedida.nombre == null ? '-' : producto.unidadMedida.nombre))}">
+                                -
+                            </span>
+                        </p>
+
+                        <p><strong>Precio:</strong> $<span th:text="${producto.precio}">0.00</span></p>
+                        <p><strong>Estado:</strong> <span th:text="${producto.activo ? 'Activo' : 'Inactivo'}">Activo</span></p>
+
                         <div class="card-actions">
                             <a th:href="@{'/productos/editar/' + ${producto.id}}" class="btn-editar"><i class="fas fa-edit"></i> Editar</a>
                             <a th:if="${producto.activo}" th:href="@{'/productos/inactivar/' + ${producto.id}}"
@@ -88,23 +108,27 @@
 <script>
     const sidebar = document.getElementById('sidebar');
     const logoBtn = document.getElementById('logoBtn');
-    logoBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('hide');
-    });
+    if (logoBtn) {
+        logoBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hide');
+        });
+    }
 
     // Filtrar tarjetas por categoría (cliente-side)
     const filtro = document.getElementById('filtroCategoria');
-    filtro.addEventListener('change', () => {
-        const selected = filtro.value;
-        document.querySelectorAll('.producto-card').forEach(card => {
-            const cat = card.getAttribute('data-categoria-id') || '';
-            if (!selected || selected === '' || selected === cat) {
-                card.style.display = '';
-            } else {
-                card.style.display = 'none';
-            }
+    if (filtro) {
+        filtro.addEventListener('change', () => {
+            const selected = filtro.value;
+            document.querySelectorAll('.producto-card').forEach(card => {
+                const cat = card.getAttribute('data-categoria-id') || '';
+                if (!selected || selected === '' || selected === cat) {
+                    card.style.display = '';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
         });
-    });
+    }
 </script>
 </body>
 </html>

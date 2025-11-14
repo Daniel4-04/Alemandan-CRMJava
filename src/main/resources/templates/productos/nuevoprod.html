@@ -65,6 +65,13 @@
                 <input type="text" th:field="*{unidadMedida}" id="unidadMedida" placeholder="ej. kg, unidad, lt" />
             </div>
 
+            <!-- NUEVO: Campo IVA -->
+            <div class="form-group">
+                <label for="iva">IVA (porcentaje):</label>
+                <input type="number" step="0.01" min="0" id="iva" name="iva" th:value="${producto.iva != null ? producto.iva : 0}" />
+                <small>Ej. 19.00 — dejar 0 para exento</small>
+            </div>
+
             <div class="form-group">
                 <label for="imagen">Imagen del producto:</label>
                 <input type="file" id="imagen" name="imagen" accept="image/*" />

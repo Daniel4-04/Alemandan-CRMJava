@@ -6,7 +6,8 @@ import com.alemandan.crm.model.Venta;
 import com.alemandan.crm.service.AdminVentaService;
 import com.alemandan.crm.service.UsuarioService;
 import com.alemandan.crm.service.ProductoService;
-import com.alemandan.crm.util.PdfReportUtilAdmin;
+import com.alemandan.crm.service.ReportService;
+import com.alemandan.crm.repository.ProductoRepository;
 import com.alemandan.crm.util.ExcelReportUtilAdmin;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,9 +15,13 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.OutputStream;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Base64;
+import java.util.Optional;
 
 @Controller
 @RequestMapping("/admin/ventas")
@@ -30,6 +35,12 @@ public class AdminVentaController {
 
     @Autowired
     private ProductoService productoService;
+
+    @Autowired
+    private ReportService reportService;
+
+    @Autowired
+    private ProductoRepository productoRepository;
 
     // Utilidad para limpiar parámetros
     private Long cleanLong(Long val) {
@@ -66,6 +77,10 @@ public class AdminVentaController {
         return "adminventas";
     }
 
+    /**
+     * Exportar resumen PDF (integrado con ReportService).
+     * Reemplaza la implementación anterior para usar el formato estilizado.
+     */
     @GetMapping("/exportar-pdf")
     public void exportarPdf(
             @RequestParam(required = false) String fechaInicio,
@@ -79,12 +94,44 @@ public class AdminVentaController {
         productoId  = cleanLong(productoId);
         metodoPago  = cleanString(metodoPago);
 
-        List<Venta> ventas = adminVentaService.filtrarVentas(fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
+        // Parsear fechas (espera formato ISO yyyy-MM-dd), con defaults
+        LocalDate today = LocalDate.now();
+        LocalDate fromDate;
+        LocalDate toDate;
+        try {
+            fromDate = (fechaInicio == null || fechaInicio.isBlank()) ? today.minusDays(30) : LocalDate.parse(fechaInicio);
+        } catch (Exception ex) {
+            fromDate = today.minusDays(30);
+        }
+        try {
+            toDate = (fechaFin == null || fechaFin.isBlank()) ? today : LocalDate.parse(fechaFin);
+        } catch (Exception ex) {
+            toDate = today;
+        }
+
+        LocalDateTime start = fromDate.atStartOfDay();
+        LocalDateTime end = toDate.atTime(23, 59, 59);
+
+        // Generar PDF con ReportService (resumen estilizado)
+        byte[] pdf = reportService.generarResumenVentasPdf(start, end, usuarioId, productoId, metodoPago);
+
+        // Construir filename, incluyendo nombre de producto sanitizado si aplica
+        String fileSuffix = "";
+        if (productoId != null) {
+            Optional<Producto> opt = productoRepository.findById(productoId);
+            String prodName = opt.map(Producto::getNombre).orElse("prod" + productoId);
+            fileSuffix = "_" + prodName.replaceAll("[^a-zA-Z0-9\\-_\\.]", "_");
+        }
+        String filename = "resumen_ventas_" + fromDate + "_" + toDate + fileSuffix + ".pdf";
 
         response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=ventas_admin.pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        response.setContentLength(pdf.length);
 
-        PdfReportUtilAdmin.exportVentasPdf(ventas, response.getOutputStream());
+        try (OutputStream os = response.getOutputStream()) {
+            os.write(pdf);
+            os.flush();
+        }
     }
 
     @GetMapping("/exportar-excel")
@@ -108,54 +155,34 @@ public class AdminVentaController {
         ExcelReportUtilAdmin.exportVentasExcel(ventas, response.getOutputStream());
     }
 
+    /**
+     * Exportar PDF a partir de una imagen (base64). Delegamos a ReportService para usar el mismo estilo (header/footer).
+     * Recibe JSON body con keys: imgBase64, titulo, fecha
+     */
     @PostMapping("/exportar-grafico-pdf")
     public void exportarGraficoPdf(@RequestBody Map<String, String> body, HttpServletResponse response) throws Exception {
-        System.out.println("Método exportar-grafico-pdf INVOCADO");
-        try {
-            String imgBase64 = body.get("imgBase64");
-            String titulo = body.get("titulo");
-            String fecha = body.get("fecha");
-            System.out.println("TITULO: " + titulo);
-            System.out.println("FECHA: " + fecha);
-            System.out.println("BASE64 length: " + (imgBase64 != null ? imgBase64.length() : "null"));
-            if (imgBase64 != null) {
-                System.out.println("BASE64 (first 100): " + imgBase64.substring(0, Math.min(100, imgBase64.length())));
-            }
+        String imgBase64 = body.get("imgBase64");
+        String titulo = body.get("titulo");
+        String fecha = body.get("fecha");
 
-            if (imgBase64 == null || imgBase64.trim().isEmpty()) {
-                System.out.println("ERROR: No se recibió la imagen base64.");
-                throw new Exception("No se recibió la imagen base64.");
-            }
-            imgBase64 = imgBase64.replace("data:image/png;base64,", "").replace("\n", "").replace("\r", "");
+        if (imgBase64 == null || imgBase64.trim().isEmpty()) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "No se recibió la imagen base64.");
+            return;
+        }
 
-            System.out.println("Decodificando imagen...");
-            byte[] imgBytes = java.util.Base64.getDecoder().decode(imgBase64);
+        // delegate to ReportService which returns a byte[] PDF
+        byte[] pdf = reportService.generarPdfFromChartBase64(imgBase64, titulo, fecha);
 
-            response.setContentType("application/pdf");
-            response.setHeader("Content-Disposition", "attachment; filename=grafico_ventas.pdf");
+        String safeTitle = (titulo == null || titulo.isBlank()) ? "grafico" : titulo.replaceAll("[^a-zA-Z0-9\\-_\\.]", "_");
+        String filename = "grafico_" + safeTitle + ".pdf";
 
-            System.out.println("Abriendo documento PDF...");
-            com.itextpdf.text.Document document = new com.itextpdf.text.Document();
-            com.itextpdf.text.pdf.PdfWriter.getInstance(document, response.getOutputStream());
-            document.open();
+        response.setContentType("application/pdf");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+        response.setContentLength(pdf.length);
 
-            com.itextpdf.text.Font titleFont = new com.itextpdf.text.Font(com.itextpdf.text.Font.FontFamily.HELVETICA, 16, com.itextpdf.text.Font.BOLD);
-            document.add(new com.itextpdf.text.Paragraph(titulo, titleFont));
-            document.add(new com.itextpdf.text.Paragraph("Fecha de exportación: " + fecha));
-            document.add(com.itextpdf.text.Chunk.NEWLINE);
-
-            System.out.println("Añadiendo imagen...");
-            com.itextpdf.text.Image image = com.itextpdf.text.Image.getInstance(imgBytes);
-            image.setAlignment(com.itextpdf.text.Image.ALIGN_CENTER);
-            image.scaleToFit(500, 300);
-            document.add(image);
-
-            document.close();
-            System.out.println("PDF generado correctamente.");
-        } catch (Exception e) {
-            System.out.println("ERROR PDF: " + e.getMessage());
-            e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error generando el PDF: " + e.getMessage());
+        try (OutputStream os = response.getOutputStream()) {
+            os.write(pdf);
+            os.flush();
         }
     }
 }

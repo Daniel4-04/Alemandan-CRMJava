@@ -85,6 +85,18 @@
                 <input type="number" th:field="*{precio}" id="precio" step="0.01" min="0" required />
             </div>
 
+            <div class="form-group">
+                <label for="unidadMedida">Unidad de medida:</label>
+                <input type="text" th:field="*{unidadMedida}" id="unidadMedida" />
+            </div>
+
+            <!-- NUEVO: Campo IVA -->
+            <div class="form-group">
+                <label for="iva">IVA (porcentaje):</label>
+                <input type="number" step="0.01" min="0" id="iva" name="iva" th:value="${producto.iva}" />
+                <small>Ej. 19.00 — dejar 0 para exento</small>
+            </div>
+
             <!-- IMAGEN: muestra actual, opción eliminar y subir nueva -->
             <div class="form-group">
                 <label class="img-label">Imagen actual:</label>
@@ -143,26 +155,24 @@
             return;
         }
         // Desmarcar eliminar si había sido marcado
-        if (eliminarCheckbox.checked) eliminarCheckbox.checked = false;
+        if (eliminarCheckbox && eliminarCheckbox.checked) eliminarCheckbox.checked = false;
 
         previewImg.src = URL.createObjectURL(file);
         previewImg.style.display = 'inline-block';
     });
 
     // Si marca eliminar, limpiamos el input file y la preview
-    eliminarCheckbox.addEventListener('change', function (e) {
-        if (eliminarCheckbox.checked) {
-            // Clear file input
-            imagenInput.value = "";
-            // Hide preview
-            previewImg.src = "#";
-            previewImg.style.display = 'none';
-            // Optionally hide current image visually
-            // currentImg.style.opacity = '0.4';
-        } else {
-            // currentImg.style.opacity = '1';
-        }
-    });
+    if (eliminarCheckbox) {
+        eliminarCheckbox.addEventListener('change', function (e) {
+            if (eliminarCheckbox.checked) {
+                // Clear file input
+                imagenInput.value = "";
+                // Hide preview
+                previewImg.src = "#";
+                previewImg.style.display = 'none';
+            }
+        });
+    }
 </script>
 </body>
 </html>

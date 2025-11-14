@@ -32,6 +32,7 @@
 <main class="ventas-main">
     <section class="ventas-panel">
         <h1><i class="fas fa-receipt"></i> Historial de Mis Ventas</h1>
+
         <form class="filtros-form" th:action="@{/ventas/mis-ventas}" method="get">
             <label><i class="fas fa-calendar-day"></i> Fecha inicio:</label>
             <input type="date" name="fechaInicio" th:value="${param.fechaInicio}" />
@@ -40,17 +41,21 @@
             <label><i class="fas fa-box"></i> Producto:</label>
             <select name="productoId">
                 <option value="">Todos</option>
-                <option th:each="prod : ${productos}" th:value="${prod.id}" th:text="${prod.nombre}"></option>
+                <option th:each="prod : ${productos}"
+                        th:value="${prod.id}"
+                        th:text="${prod.nombre}"
+                        th:selected="${param.productoId != null and #strings.equals(param.productoId, prod.id.toString())}"></option>
             </select>
             <label><i class="fas fa-money-check-alt"></i> Método de pago:</label>
             <select name="metodoPago">
                 <option value="">Todos</option>
-                <option value="Efectivo">Efectivo</option>
-                <option value="Tarjeta">Tarjeta</option>
-                <option value="Transferencia">Transferencia</option>
+                <option value="Efectivo" th:selected="${param.metodoPago == 'Efectivo'}">Efectivo</option>
+                <option value="Tarjeta" th:selected="${param.metodoPago == 'Tarjeta'}">Tarjeta</option>
+                <option value="Transferencia" th:selected="${param.metodoPago == 'Transferencia'}">Transferencia</option>
             </select>
             <button type="submit"><i class="fas fa-filter"></i> Filtrar</button>
         </form>
+
         <div class="export-btns">
             <form th:action="@{/ventas/exportar-pdf}" method="get" style="display:inline;">
                 <input type="hidden" name="fechaInicio" th:value="${param.fechaInicio}" />
@@ -67,6 +72,7 @@
                 <button type="submit"><i class="fas fa-file-excel"></i> Exportar Excel</button>
             </form>
         </div>
+
         <table class="ventas-table">
             <thead>
             <tr>
@@ -78,8 +84,12 @@
             </thead>
             <tbody>
             <tr th:each="venta : ${ventas}">
-                <td th:text="${venta.fecha}"></td>
-                <td th:text="${venta.total}"></td>
+                <!-- Formateo de fecha con #temporals (java.time) -->
+                <td th:text="${venta.fecha != null ? #temporals.format(venta.fecha, 'dd/MM/yyyy HH:mm') : 'N/A'}"></td>
+
+                <!-- Formateo del total usando el nombre completo del tipo en SpEL -->
+                <td th:text="${venta.total != null ? T(java.lang.String).format('%.2f', venta.total.doubleValue()) : '0.00'}"></td>
+
                 <td th:text="${venta.metodoPago}"></td>
                 <td>
                     <ul>
@@ -95,12 +105,15 @@
         </table>
     </section>
 </main>
+
 <script>
     const sidebar = document.getElementById('sidebar');
     const logoBtn = document.getElementById('logoBtn');
-    logoBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('hide');
-    });
+    if (logoBtn) {
+      logoBtn.addEventListener('click', () => {
+          sidebar.classList.toggle('hide');
+      });
+    }
 </script>
 </body>
 </html>
