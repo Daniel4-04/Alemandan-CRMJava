@@ -30,6 +30,10 @@ public class DashboardController {
 
     @GetMapping("/dashboard")
     public String dashboard(Authentication auth, Model model) {
+        if (auth == null) {
+            return "redirect:/login";
+        }
+
         if(auth.getAuthorities().contains(new SimpleGrantedAuthority("ADMIN"))) {
             Usuario admin = usuarioService.findByEmail(auth.getName());
             model.addAttribute("admin", admin);
@@ -47,7 +51,7 @@ public class DashboardController {
             model.addAttribute("misVentasDia", ventaService.countVentasDelDiaEmpleado(empleado.getId()));
             model.addAttribute("totalMisVentas", ventaService.countVentasTotalesEmpleado(empleado.getId()));
 
-            // Obtiene el resumen directamente del servicio, NO con RestTemplate
+            // Obtiene el resumen directamente del servicio
             try {
                 Map resumen = ventaService.getResumenVentas();
 
@@ -77,5 +81,21 @@ public class DashboardController {
             return "dashboardempleado";
         }
         return "redirect:/login?error";
+    }
+
+    /**
+     * Mapear accesos directos para poder abrir los dashboards por su URL específica.
+     * Ambos endpoints delegan en el método dashboard(...) y producen la misma lógica
+     * que /dashboard (pero permiten que se acceda directamente a /dashboard-empleado
+     * o /dashboard-admin).
+     */
+    @GetMapping("/dashboard-empleado")
+    public String dashboardEmpleado(Authentication auth, Model model) {
+        return dashboard(auth, model);
+    }
+
+    @GetMapping("/dashboard-admin")
+    public String dashboardAdmin(Authentication auth, Model model) {
+        return dashboard(auth, model);
     }
 }

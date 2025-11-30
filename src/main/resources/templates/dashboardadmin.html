@@ -4,25 +4,126 @@
     <meta charset="UTF-8">
     <title>Dashboard Administrador | Alemandan CRM</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Mantengo tus CSS originales (NO toco sidebar ni layout global) -->
     <link rel="stylesheet" th:href="@{/assets/css/dashboard_admin.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+    <!-- Solo CSS pequeño y localizado para el modal / preview / flash (NO tocar layout o sidebar) -->
+    <style>
+        /* Modal backdrop and panel (scoped) */
+        #modalBackdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+        #modalBackdrop.open {
+            display: flex;
+        }
+
+        /* Modal box limited styles so it blends with existing theme */
+        .modal {
+            width: 520px;
+            max-width: calc(100% - 32px);
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+            font-family: inherit;
+        }
+
+        .modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+        .modal-header h3 { margin:0; font-size:1rem; color: #143dd6; }
+
+        .modal-body { display:flex; gap:12px; flex-wrap:wrap; }
+        .modal-body .left { width:120px; text-align:center; }
+        .modal-body .left img { width:100px; height:100px; object-fit:cover; border-radius:8px; display:block; margin:0 auto; }
+        .modal-body .right { flex:1; min-width:200px; }
+
+        .modal-footer { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+
+        /* Buttons inside modal: don't override global .btn if it exists, but provide minimal fallback */
+        .modal .btn {
+            background: #143dd6;
+            color: #fff;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+        .modal .btn.secondary {
+            background: #f1f6ff;
+            color: #143dd6;
+            border: 1px solid #e6eefc;
+        }
+
+        /* Flash message (scoped to id) */
+        #flashMsg {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            background: #e6ffef;
+            color: #056a3b;
+            border: 1px solid #bdecc0;
+            padding: 10px 14px;
+            border-radius: 8px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            z-index: 3000;
+            display: none;
+        }
+        #flashMsg.error {
+            background: #ffecec;
+            color: #8a1f1f;
+            border-color: #f3c2c2;
+        }
+
+        /* Small helper to make modal inputs match existing theme but local only */
+        .modal input.input {
+            width: 100%;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #e6eefc;
+            box-sizing: border-box;
+        }
+
+        /* Logout button style: red tone like screenshot (local only) */
+        .logout-btn-red {
+            color: #d9534f;
+            background: none;
+            border: none;
+            padding: 6px 10px;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+        }
+        .logout-btn-red i { color: #d9534f; }
+    </style>
 </head>
 <body>
-<!-- Header superior con logo fijo y acciones a la derecha -->
 <header class="admin-header">
     <div class="header-left">
-        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="admin-logo" id="logoBtn" title="Menú">
+        <img th:src="@{/assets/img/Alogo.png}" alt="Alemandan Logo" class="admin-logo" id="logoBtn" title="Menú" tabindex="0">
         <span class="admin-title">ADMINISTRADOR</span>
     </div>
     <div class="header-actions">
         <a href="/admin/correos-masivos" class="header-btn"><i class="fas fa-envelope"></i> Enviar correos</a>
-        <form th:action="@{/logout}" method="post" class="header-btn logout-form">
-            <button type="submit"><i class="fas fa-sign-out-alt"></i> Cerrar sesión</button>
+
+        <!-- Cerrar sesión con estilo rojo -->
+        <form th:action="@{/logout}" method="post" class="header-btn logout-form" style="display:inline;">
+            <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+            <button type="submit" class="logout-btn-red" title="Cerrar sesión">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Cerrar sesión</span>
+            </button>
         </form>
     </div>
 </header>
 
-<!-- Panel lateral ocultable, inicia debajo del header -->
 <aside class="sidebar hide" id="sidebar">
     <nav>
         <ul>
@@ -34,50 +135,233 @@
     </nav>
 </aside>
 
-<!-- Main dashboard, caja estática centrada -->
+<!-- Flash area -->
+<div id="flashMsg" role="alert" aria-live="polite"></div>
+
 <main class="dashboard-main">
     <section class="admin-profile">
         <div class="profile-info">
             <div class="profile-img-container">
-                <img th:src="@{/assets/img/admin_profile.jpg}" alt="Admin Perfil" class="profile-img">
+                <img th:src="${admin != null and admin.imagePath != null ? admin.imagePath : '/assets/img/admin_profile.jpg'}"
+                     alt="Admin Perfil" class="profile-img" id="profilePreview" tabindex="0">
                 <span class="profile-role"><i class="fas fa-crown"></i></span>
             </div>
+
             <div class="profile-details">
-                <h2 th:text="${admin.nombre}">Administrador</h2>
+                <h2 th:text="${admin != null ? admin.nombre : 'Administrador'}">Administrador</h2>
                 <div class="profile-contact">
-                    <span><i class="fas fa-envelope"></i> <span th:text="${admin.email}">admin@alemandan.com</span></span>
+                    <span><i class="fas fa-envelope"></i> <span th:text="${admin != null ? admin.email : '—'}">admin@alemandan.com</span></span>
+                </div>
+
+                <div style="margin-top:12px;">
+                    <button type="button" class="btn" id="openEditBtn"><i class="fas fa-user-edit"></i> Editar perfil</button>
                 </div>
             </div>
         </div>
+
         <div class="profile-resumen">
             <div class="resumen-item">
                 <span class="resumen-title">Empleados</span>
-                <span class="resumen-value" th:text="${totalEmpleados}">24</span>
+                <span class="resumen-value" th:text="${totalEmpleados != null ? totalEmpleados : 0}">0</span>
             </div>
             <div class="resumen-item">
                 <span class="resumen-title">Proveedores</span>
-                <span class="resumen-value" th:text="${totalProveedores}">12</span>
+                <span class="resumen-value" th:text="${totalProveedores != null ? totalProveedores : 0}">0</span>
             </div>
             <div class="resumen-item">
                 <span class="resumen-title">Productos inventario</span>
-                <span class="resumen-value" th:text="${totalProductos}">120</span>
+                <span class="resumen-value" th:text="${totalProductos != null ? totalProductos : 0}">0</span>
             </div>
             <div class="resumen-item">
                 <span class="resumen-title">Ventas del día</span>
-                <span class="resumen-value" th:text="${totalVentasDia}">15</span>
+                <span class="resumen-value" th:text="${totalVentasDia != null ? totalVentasDia : 0}">0</span>
             </div>
         </div>
     </section>
 </main>
 
-<!-- No hay footer -->
+<!-- Modal structure (unchanged) -->
+<div id="modalBackdrop" role="dialog" aria-hidden="true">
+    <div class="modal" role="document" aria-modal="true" aria-labelledby="modalTitle">
+        <div class="modal-header">
+            <h3 id="modalTitle">Editar Perfil</h3>
+            <button type="button" id="closeModal" class="btn secondary" title="Cerrar">&times;</button>
+        </div>
 
-<!-- JS para mostrar/ocultar sidebar al hacer clic en el logo -->
+        <div class="modal-body">
+            <div class="left">
+                <img id="modalPreview" th:src="${admin != null and admin.imagePath != null ? admin.imagePath : '/assets/img/admin_profile.jpg'}" alt="preview">
+                <div style="margin-top:8px;">
+                    <button type="button" id="modalChooseBtn" class="btn secondary"><i class="fas fa-camera"></i> Elegir</button>
+                </div>
+                <form th:action="@{/admin/profile/photo}" method="post" enctype="multipart/form-data" id="modalPhotoForm" style="display:none;">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <input type="file" name="photo" id="modalPhotoInput" accept="image/*"/>
+                </form>
+            </div>
+
+            <div class="right">
+                <form th:action="@{/admin/profile/update}" method="post" id="modalProfileForm">
+                    <input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; font-weight:600; margin-bottom:4px;">Nombre</label>
+                        <input class="input" type="text" name="nombre" id="modalNombre" th:value="${admin != null ? admin.nombre : ''}" required>
+                    </div>
+
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; font-weight:600; margin-bottom:4px;">Email</label>
+                        <input class="input" type="email" name="email" id="modalEmail" th:value="${admin != null ? admin.email : ''}" required>
+                    </div>
+
+                    <hr style="border:none; border-top:1px dashed #eee; margin:10px 0;">
+
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; font-weight:600; margin-bottom:4px;">Contraseña actual</label>
+                        <input class="input" type="password" name="currentPassword" id="modalCurrentPassword" placeholder="Contraseña actual (requerida si cambia email o contraseña)">
+                    </div>
+
+                    <div style="margin-bottom:8px;">
+                        <label style="display:block; font-weight:600; margin-bottom:4px;">Nueva contraseña (opcional)</label>
+                        <input class="input" type="password" name="newPassword" id="modalNewPassword" placeholder="Si quieres cambiar la contraseña">
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" id="cancelBtn" class="btn secondary">Cancelar</button>
+                        <button type="submit" class="btn"><i class="fas fa-save"></i> Guardar cambios</button>
+                    </div>
+                </form>
+
+                <div style="margin-top:8px;">
+                    <button type="button" id="uploadPhotoBtn" class="btn" style="display:none;">Subir foto</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- EXACT sidebar toggle logic from dashboardempleado (keep sidebar behavior intact) -->
 <script>
-    const sidebar = document.getElementById('sidebar');
-    const logoBtn = document.getElementById('logoBtn');
-    logoBtn.addEventListener('click', () => {
-        sidebar.classList.toggle('hide');
+    (function () {
+        const sidebar = document.getElementById('sidebar');
+        const logoBtn = document.getElementById('logoBtn');
+        if (!logoBtn || !sidebar) return;
+
+        logoBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('hide');
+        });
+        logoBtn.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                sidebar.classList.toggle('hide');
+            }
+        });
+    })();
+</script>
+
+<!-- Modal, preview, validation and flash scripts (unchanged) -->
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const openEditBtn = document.getElementById('openEditBtn');
+        const modalBackdrop = document.getElementById('modalBackdrop');
+        const closeModal = document.getElementById('closeModal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const modalPreview = document.getElementById('modalPreview');
+        const profilePreview = document.getElementById('profilePreview');
+        const modalChooseBtn = document.getElementById('modalChooseBtn');
+        const modalPhotoInput = document.getElementById('modalPhotoInput');
+        const modalPhotoForm = document.getElementById('modalPhotoForm');
+        const modalProfileForm = document.getElementById('modalProfileForm');
+        const uploadPhotoBtn = document.getElementById('uploadPhotoBtn');
+        const flash = document.getElementById('flashMsg');
+
+        function openModal() {
+            if (modalBackdrop) {
+                modalBackdrop.classList.add('open');
+                modalBackdrop.setAttribute('aria-hidden','false');
+            }
+            if (modalProfileForm) {
+                const firstInput = modalProfileForm.querySelector('input[name="nombre"]');
+                if (firstInput) firstInput.focus();
+            }
+        }
+        function closeModalFn() {
+            if (modalBackdrop) {
+                modalBackdrop.classList.remove('open');
+                modalBackdrop.setAttribute('aria-hidden','true');
+            }
+            if (modalPhotoInput) modalPhotoInput.value = '';
+            if (uploadPhotoBtn) uploadPhotoBtn.style.display = 'none';
+        }
+
+        if (openEditBtn) openEditBtn.addEventListener('click', openModal);
+        if (closeModal) closeModal.addEventListener('click', closeModalFn);
+        if (cancelBtn) cancelBtn.addEventListener('click', closeModalFn);
+
+        if (modalBackdrop) {
+            modalBackdrop.addEventListener('click', function(e) {
+                if (e.target === modalBackdrop) closeModalFn();
+            });
+        }
+
+        if (modalChooseBtn && modalPhotoInput) {
+            modalChooseBtn.addEventListener('click', () => modalPhotoInput.click());
+            modalPhotoInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(evt) {
+                    modalPreview.src = evt.target.result;
+                    if (profilePreview) profilePreview.src = evt.target.result;
+                };
+                reader.readAsDataURL(file);
+                uploadPhotoBtn.style.display = 'inline-block';
+            });
+        }
+
+        if (uploadPhotoBtn && modalPhotoForm) {
+            uploadPhotoBtn.addEventListener('click', () => modalPhotoForm.submit());
+        }
+
+        if (modalProfileForm) {
+            modalProfileForm.addEventListener('submit', (e) => {
+                const newPass = document.getElementById('modalNewPassword').value.trim();
+                const currentPass = document.getElementById('modalCurrentPassword').value.trim();
+                if (newPass && !currentPass) {
+                    e.preventDefault();
+                    alert('Debes ingresar la contraseña actual para cambiar la contraseña.');
+                    return;
+                }
+            });
+        }
+
+        (function showFlashFromQuery() {
+            const params = new URLSearchParams(window.location.search);
+            if (!flash) return;
+            if (params.get('updated') === '1') {
+                flash.textContent = 'Perfil actualizado correctamente';
+                flash.classList.remove('error');
+                flash.style.display = 'block';
+            } else if (params.get('photoUpdated') === '1') {
+                flash.textContent = 'Foto de perfil actualizada';
+                flash.classList.remove('error');
+                flash.style.display = 'block';
+            } else if (params.get('error')) {
+                flash.textContent = decodeURIComponent(params.get('error'));
+                flash.classList.add('error');
+                flash.style.display = 'block';
+            } else {
+                flash.style.display = 'none';
+                return;
+            }
+            setTimeout(() => { flash.style.display = 'none'; }, 4000);
+            if (window.history && window.history.replaceState) {
+                const url = new URL(window.location);
+                url.searchParams.delete('updated');
+                url.searchParams.delete('photoUpdated');
+                url.searchParams.delete('error');
+                window.history.replaceState({}, document.title, url.pathname + url.search);
+            }
+        })();
     });
 </script>
 </body>

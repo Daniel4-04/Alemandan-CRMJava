@@ -25,6 +25,13 @@ public class Usuario {
     @Column(nullable = false)
     private Boolean activo = true;
 
+    /**
+     * Ruta pública relativa a la imagen de perfil (ej: /uploads/users/user_1_12345.jpg).
+     * Añade getter/setter para que el controlador pueda persistirla y las plantillas Thymeleaf la muestren.
+     */
+    @Column(name = "image_path")
+    private String imagePath;
+
     // Getters y Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -43,4 +50,7 @@ public class Usuario {
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+
+    public String getImagePath() { return imagePath; }
+    public void setImagePath(String imagePath) { this.imagePath = imagePath; }
 }

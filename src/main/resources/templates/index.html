@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Alemandan CRM</title>
+    <title>Alemandan POS — Punto de Venta</title>
     <link rel="stylesheet" th:href="@{/assets/css/style.css}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 </head>
@@ -22,11 +22,14 @@
             <li><a th:href="@{/login}" class="nav-link login-btn pulse">Ingresar <i class="fas fa-sign-in-alt"></i></a></li>
         </ul>
     </nav>
+
     <div class="hero">
-        <h1 class="fade-in-down">¡Gestiona con datos, no con dudas!</h1>
-        <h2 class="fade-in-up">Un CRM que evoluciona contigo</h2>
-        <div class="cta-container">
-            <a th:href="@{/login}" class="cta-btn glow">Accede al CRM</a>
+        <h1 class="fade-in-down">Alemandan POS</h1>
+        <h2 class="fade-in-up">Vende más rápido, controla inventarios y revisa reportes en tiempo real.</h2>
+
+        <!-- Quick POS snapshot (integrated POS info; uses Thymeleaf variables if provided) -->
+        <div class="cta-container" style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:16px;">
+            <a th:href="@{/login}" class="cta-btn glow">Ir al Punto de Venta</a>
         </div>
     </div>
 </header>
@@ -34,56 +37,61 @@
 <!-- Main Content -->
 <main>
     <section class="features" id="features">
-        <h3 class="section-title reveal">¿Por qué Alemandan CRM?</h3>
+        <h3 class="section-title reveal">¿Por qué Alemandan POS?</h3>
         <div class="features-grid">
             <div class="feature-card lift">
-                <i class="fas fa-user-shield fa-2x"></i>
-                <h4>Gestión Segura de Usuarios</h4>
-                <p>Administra roles, solicitudes y accesos con total seguridad y facilidad.</p>
+                <i class="fas fa-cash-register fa-2x"></i>
+                <h4>Checkout Rápido</h4>
+                <p>Proceso de venta ágil, compatible con efectivo, tarjetas y otros métodos. Genera ticket o factura en segundos.</p>
             </div>
+
             <div class="feature-card lift">
-                <i class="fas fa-envelope fa-2x"></i>
-                <h4>Notificaciones y Correos</h4>
-                <p>Envío automático de correos para registro, aprobación y recuperación.</p>
+                <i class="fas fa-boxes fa-2x"></i>
+                <h4>Inventario en Tiempo Real</h4>
+                <p>Stock automático al registrar ventas, con alertas de bajo inventario y gestión simple de productos.</p>
             </div>
+
             <div class="feature-card lift">
-                <i class="fas fa-file-pdf fa-2x"></i>
-                <h4>Reportes en PDF</h4>
-                <p>Exporta reportes de ventas y gráficos en PDF de manera instantánea.</p>
+                <i class="fas fa-receipt fa-2x"></i>
+                <h4>Historial y Tickets</h4>
+                <p>Consulta ventas por empleado, busca tickets y reimprime comprobantes fácilmente.</p>
             </div>
+
             <div class="feature-card lift">
-                <i class="fas fa-lock fa-2x"></i>
-                <h4>Recuperación de Contraseña</h4>
-                <p>Permite a los usuarios restablecer su acceso de forma fácil y segura desde cualquier dispositivo.</p>
+                <i class="fas fa-chart-simple fa-2x"></i>
+                <h4>Reportes y Exportes</h4>
+                <p>Paneles con métricas clave y exportables a PDF para control y contabilidad.</p>
             </div>
+
             <div class="feature-card lift">
-                <i class="fas fa-chart-line fa-2x"></i>
-                <h4>Paneles Personalizados</h4>
-                <p>Dashboards intuitivos para administradores y empleados, con acceso a reportes y ventas.</p>
+                <i class="fas fa-user-friends fa-2x"></i>
+                <h4>Gestión de Clientes</h4>
+                <p>Registra clientes, observa su historial de compras y aplica descuentos o promociones.</p>
             </div>
+
             <div class="feature-card lift">
                 <i class="fas fa-headset fa-2x"></i>
                 <h4>Soporte y Actualizaciones</h4>
-                <p>Contamos con soporte dedicado y el sistema siempre evoluciona con nuevas mejoras.</p>
+                <p>Soporte continuo y mejoras frecuentes que mantienen tu punto de venta siempre optimizado.</p>
             </div>
         </div>
     </section>
 
     <section class="about" id="about">
-        <h3 class="section-title reveal">Sobre Alemandan</h3>
+        <h3 class="section-title reveal">Sobre Alemandan POS</h3>
         <div class="about-content centered-about">
             <div class="about-text fade-in-up">
                 <p>
-                    Alemandan CRM te ayuda a transformar la gestión de tu negocio con una plataforma robusta, intuitiva y segura.
+                    Alemandan POS es la extensión orientada a ventas de nuestra plataforma: enfocada en fiabilidad operativa, velocidad de checkout y control de inventarios para comercios de todo tamaño.
                 </p>
-                <!-- Swap Cylinder Features -->
+                <!-- Swap Cylinder Features (POS-focused) -->
                 <div class="swap-cylinder">
-                    <div class="swap-feature"><i class="fas fa-check"></i> Interfaz amigable y moderna</div>
-                    <div class="swap-feature"><i class="fas fa-check"></i> Acceso seguro desde cualquier lugar</div>
-                    <div class="swap-feature"><i class="fas fa-check"></i> Soporte dedicado</div>
-                    <div class="swap-feature"><i class="fas fa-check"></i> Gestión de ventas y reportes</div>
-                    <div class="swap-feature"><i class="fas fa-check"></i> Control total de usuarios y roles</div>
-                    <div class="swap-feature"><i class="fas fa-check"></i> Integración con reportes en PDF</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Checkout optimizado</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Gestión automática de stock</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Reportes por periodo</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Control por empleado</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Exportes y backups</div>
+                    <div class="swap-feature"><i class="fas fa-check"></i> Integración con impresoras</div>
                 </div>
             </div>
         </div>
@@ -118,7 +126,7 @@
         </div>
     </div>
     <div class="footer-bottom">
-        <p>&copy; 2025 Alemandan CRM. Todos los derechos reservados.</p>
+        <p>&copy; 2025 Alemandan POS. Todos los derechos reservados.</p>
     </div>
 </footer>
 
@@ -141,10 +149,11 @@
     window.addEventListener('scroll', reveal);
     window.addEventListener('load', reveal);
 
-    // Swap/cylinder animation for features: always visible, only highlight
+    // Swap/cylinder animation for features: highlight POS items
     let swapIndex = 0;
     const swapFeatures = document.querySelectorAll('.swap-cylinder .swap-feature');
     function swapCylinder() {
+        if (!swapFeatures || swapFeatures.length === 0) return;
         swapFeatures.forEach((el, i) => {
             el.style.opacity = (i === swapIndex) ? '1' : '0.85';
             el.style.transform = (i === swapIndex) ? 'scale(1.1)' : 'scale(1)';
