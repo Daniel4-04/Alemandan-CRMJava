@@ -24,6 +24,9 @@
         <!-- Ensure resources are processed as UTF-8 to avoid MalformedInputException -->
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        
+        <!-- Dependency versions -->
+        <sendgrid.version>4.9.3</sendgrid.version>
     </properties>
 
     <dependencies>
@@ -111,6 +114,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+        <!-- SendGrid for email API (fallback when SMTP is blocked) -->
+        <dependency>
+            <groupId>com.sendgrid</groupId>
+            <artifactId>sendgrid-java</artifactId>
+            <version>${sendgrid.version}</version>
         </dependency>
 
         <dependency>
