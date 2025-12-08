@@ -173,6 +173,34 @@ After deployment, verify:
 3. **Email handling:** Try registration/approval - should complete even if SMTP fails
 4. **Error pages:** Navigate to a non-existent route to test error handling
 
+### Testing Email Configuration
+
+You can test the email configuration using the internal test endpoint:
+
+```bash
+# Test email sending with curl
+curl -X POST "https://your-railway-app.railway.app/internal/test-mail?to=your-email@example.com"
+
+# Or from localhost during development
+curl -X POST "http://localhost:8080/internal/test-mail?to=your-email@example.com"
+```
+
+**Security Note:**
+- The `/internal/test-mail` endpoint is for testing and debugging purposes only
+- In production, this endpoint should be secured with authentication or IP whitelisting
+- Consider adding Spring Security rules to restrict access to administrators
+- Or remove the endpoint entirely once email configuration is verified
+
+**Expected behavior:**
+- If `SENDGRID_API_KEY` is configured: Email sends via SendGrid API
+- If SendGrid fails or is not configured: Falls back to SMTP (if configured)
+- Check Railway logs to see which provider was used and any error messages
+
+**Logs to look for:**
+- `Email sent successfully via SendGrid to: user@example.com (status: 202)`
+- `SendGrid failed, falling back to SMTP for: user@example.com`
+- `Email sent successfully via SMTP to: user@example.com`
+
 ## Additional Resources
 
 - [Railway Documentation](https://docs.railway.app/)

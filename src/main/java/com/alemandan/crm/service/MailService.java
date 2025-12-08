@@ -120,73 +120,128 @@ public class MailService {
     }
 
     public void enviarBienvenida(String to, String nombre) {
-        try {
-            SimpleMailMessage mensaje = new SimpleMailMessage();
-            mensaje.setTo(to);
-            mensaje.setSubject("Bienvenido a AlemandanPOS");
-            mensaje.setText("Hola " + nombre + ",\n\n"
-                    + "Gracias por solicitar acceso a nuestra plataforma AlemandanPOS.\n"
-                    + "Tu registro fue recibido y está pendiente de aprobación por el administrador.\n"
-                    + "Recibirás otro correo cuando tu acceso sea aprobado.\n\n"
-                    + "Saludos,\nEquipo AlemandanPOS");
-            mailSender.send(mensaje);
-            logger.info("Welcome email sent successfully to: {}", to);
-        } catch (MailException e) {
-            logger.error("Failed to send welcome email to: {}. SMTP error: {}", to, e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("Unexpected error sending welcome email to: {}. Error: {}", to, e.getMessage(), e);
+        String subject = "Bienvenido a AlemandanPOS";
+        String body = "Hola " + nombre + ",\n\n"
+                + "Gracias por solicitar acceso a nuestra plataforma AlemandanPOS.\n"
+                + "Tu registro fue recibido y está pendiente de aprobación por el administrador.\n"
+                + "Recibirás otro correo cuando tu acceso sea aprobado.\n\n"
+                + "Saludos,\nEquipo AlemandanPOS";
+        
+        // Try SendGrid API first if configured
+        if (StringUtils.hasText(sendGridApiKey)) {
+            if (enviarConSendGridTexto(to, subject, body)) {
+                return; // Success with SendGrid
+            }
+            logger.warn("SendGrid failed, falling back to SMTP for: {}", to);
         }
+        
+        // Fallback to SMTP
+        enviarConSMTPTexto(to, subject, body);
     }
 
     public void enviarRechazo(String to, String nombre) {
-        try {
-            SimpleMailMessage mensaje = new SimpleMailMessage();
-            mensaje.setTo(to);
-            mensaje.setSubject("Solicitud rechazada - AlemandanPOS");
-            mensaje.setText("Hola " + nombre + ",\n\n"
-                    + "Tu solicitud de acceso fue rechazada por el administrador.\n"
-                    + "Si crees que esto es un error, comunícate con la empresa.\n\n"
-                    + "Saludos,\nEquipo AlemandanPOS");
-            mailSender.send(mensaje);
-            logger.info("Rejection email sent successfully to: {}", to);
-        } catch (MailException e) {
-            logger.error("Failed to send rejection email to: {}. SMTP error: {}", to, e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("Unexpected error sending rejection email to: {}. Error: {}", to, e.getMessage(), e);
+        String subject = "Solicitud rechazada - AlemandanPOS";
+        String body = "Hola " + nombre + ",\n\n"
+                + "Tu solicitud de acceso fue rechazada por el administrador.\n"
+                + "Si crees que esto es un error, comunícate con la empresa.\n\n"
+                + "Saludos,\nEquipo AlemandanPOS";
+        
+        // Try SendGrid API first if configured
+        if (StringUtils.hasText(sendGridApiKey)) {
+            if (enviarConSendGridTexto(to, subject, body)) {
+                return; // Success with SendGrid
+            }
+            logger.warn("SendGrid failed, falling back to SMTP for: {}", to);
         }
+        
+        // Fallback to SMTP
+        enviarConSMTPTexto(to, subject, body);
     }
 
     public void enviarCorreoRecuperarPassword(String to, String nombre, String link) {
-        try {
-            SimpleMailMessage mensaje = new SimpleMailMessage();
-            mensaje.setTo(to);
-            mensaje.setSubject("Recuperar contraseña - AlemandanPOS");
-            mensaje.setText("Hola " + nombre + ",\n\n"
-                    + "Haz clic en el siguiente enlace para restablecer tu contraseña:\n"
-                    + link + "\n\n"
-                    + "Si no solicitaste este cambio, ignora este mensaje.\n\n"
-                    + "Saludos,\nEquipo AlemandanPOS");
-            mailSender.send(mensaje);
-            logger.info("Password recovery email sent successfully to: {}", to);
-        } catch (MailException e) {
-            logger.error("Failed to send password recovery email to: {}. SMTP error: {}", to, e.getMessage(), e);
-        } catch (Exception e) {
-            logger.error("Unexpected error sending password recovery email to: {}. Error: {}", to, e.getMessage(), e);
+        String subject = "Recuperar contraseña - AlemandanPOS";
+        String body = "Hola " + nombre + ",\n\n"
+                + "Haz clic en el siguiente enlace para restablecer tu contraseña:\n"
+                + link + "\n\n"
+                + "Si no solicitaste este cambio, ignora este mensaje.\n\n"
+                + "Saludos,\nEquipo AlemandanPOS";
+        
+        // Try SendGrid API first if configured
+        if (StringUtils.hasText(sendGridApiKey)) {
+            if (enviarConSendGridTexto(to, subject, body)) {
+                return; // Success with SendGrid
+            }
+            logger.warn("SendGrid failed, falling back to SMTP for: {}", to);
         }
+        
+        // Fallback to SMTP
+        enviarConSMTPTexto(to, subject, body);
     }
 
     public void enviarCorreoGenerico(String to, String asunto, String mensajeTexto) {
+        // Try SendGrid API first if configured
+        if (StringUtils.hasText(sendGridApiKey)) {
+            if (enviarConSendGridTexto(to, asunto, mensajeTexto)) {
+                return; // Success with SendGrid
+            }
+            logger.warn("SendGrid failed, falling back to SMTP for: {}", to);
+        }
+        
+        // Fallback to SMTP
+        enviarConSMTPTexto(to, asunto, mensajeTexto);
+    }
+    
+    /**
+     * Send plain text email using SendGrid API.
+     * @return true if successful, false otherwise
+     */
+    private boolean enviarConSendGridTexto(String to, String subject, String textBody) {
+        try {
+            Email from = new Email(senderEmail);
+            Email toEmail = new Email(to);
+            Content content = new Content("text/plain", textBody);
+            Mail mail = new Mail(from, subject, toEmail, content);
+            
+            SendGrid sg = new SendGrid(sendGridApiKey);
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            
+            Response response = sg.api(request);
+            
+            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                logger.info("Email sent successfully via SendGrid to: {} (status: {})", to, response.getStatusCode());
+                return true;
+            } else {
+                logger.error("SendGrid API returned error status {} for: {}. Body: {}", 
+                    response.getStatusCode(), to, response.getBody());
+                return false;
+            }
+        } catch (IOException e) {
+            logger.error("SendGrid API IO error sending to: {}. Error: {}", to, e.getMessage(), e);
+            return false;
+        } catch (Exception e) {
+            logger.error("Unexpected error with SendGrid for: {}. Error: {}", to, e.getMessage(), e);
+            return false;
+        }
+    }
+    
+    /**
+     * Send plain text email using SMTP (JavaMailSender).
+     */
+    private void enviarConSMTPTexto(String to, String subject, String textBody) {
         try {
             SimpleMailMessage mensaje = new SimpleMailMessage();
             mensaje.setTo(to);
-            mensaje.setSubject(asunto);
-            mensaje.setText(mensajeTexto);
+            mensaje.setSubject(subject);
+            mensaje.setText(textBody);
             mailSender.send(mensaje);
-            logger.info("Generic email sent successfully to: {}", to);
+            logger.info("Email sent successfully via SMTP to: {}", to);
         } catch (MailException e) {
-            logger.error("Failed to send generic email to: {}. SMTP error: {}", to, e.getMessage(), e);
+            logger.error("Failed to send email to: {}. SMTP error: {}", to, e.getMessage(), e);
         } catch (Exception e) {
-            logger.error("Unexpected error sending generic email to: {}. Error: {}", to, e.getMessage(), e);
+            logger.error("Unexpected error sending email to: {}. Error: {}", to, e.getMessage(), e);
         }
     }
 }
