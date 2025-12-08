@@ -9,9 +9,20 @@ public class PasswordResetToken {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false, unique = true)
     private String token;
+    
+    @Column(nullable = false)
     private String email;
+    
+    @Column(nullable = false)
+    private LocalDateTime createdAt;
+    
+    @Column(nullable = false)
     private LocalDateTime expiryDate;
+    
+    @Column(nullable = false)
+    private boolean used = false;
 
     // Getters y setters
 
@@ -33,10 +44,22 @@ public class PasswordResetToken {
     public void setEmail(String email) {
         this.email = email;
     }
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
     public LocalDateTime getExpiryDate() {
         return expiryDate;
     }
     public void setExpiryDate(LocalDateTime expiryDate) {
         this.expiryDate = expiryDate;
+    }
+    public boolean getUsed() {
+        return used;
+    }
+    public void setUsed(boolean used) {
+        this.used = used;
     }
 }

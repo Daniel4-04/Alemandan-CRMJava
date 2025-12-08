@@ -86,6 +86,113 @@ El sistema arrancará en [http://localhost:8080/](http://localhost:8080/)
 
 ---
 
+## Password Reset Feature
+
+The application includes a secure password reset flow that allows users to recover their accounts via email.
+
+### How it Works
+
+1. **Request Reset:** User enters their email on the login page
+2. **Token Generation:** System generates a secure UUID token with configurable expiration (default: 60 minutes)
+3. **Email Delivery:** User receives an email with a password reset link
+4. **Password Update:** User clicks the link, enters a new password, and the token is marked as used
+
+### Configuration
+
+#### Required Environment Variables
+
+Set these in your environment or `.env` file (see `.env.template` for examples):
+
+```properties
+# Application base URL for email links
+# Development: http://localhost:8080
+# Production: https://yourdomain.com
+APP_BASE_URL=https://yourdomain.com
+
+# Token expiration time in minutes (default: 60)
+PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=60
+
+# Minimum password length (default: 8 characters)
+PASSWORD_RESET_MIN_PASSWORD_LENGTH=8
+```
+
+#### Email Configuration
+
+The password reset feature requires email to be configured. The application supports two methods:
+
+**Option A: SendGrid API (Recommended for production)**
+```properties
+SENDGRID_API_KEY=SG.your_api_key_here
+SENDER_EMAIL=noreply@yourdomain.com
+```
+
+**Option B: SMTP (for development or alternative providers)**
+```properties
+SPRING_MAIL_HOST=smtp.gmail.com
+SPRING_MAIL_PORT=587
+SPRING_MAIL_USERNAME=your_email@gmail.com
+SPRING_MAIL_PASSWORD=your_app_password
+```
+
+> **Note:** Railway blocks SMTP ports (25, 465, 587). Use SendGrid API for Railway deployments.
+
+### Security Features
+
+- **Token Expiration:** Tokens automatically expire after the configured time (default: 60 minutes)
+- **Single Use:** Each token can only be used once to reset a password
+- **Password Strength:** Passwords must:
+  - Be at least 8 characters long (configurable)
+  - Contain at least one letter
+  - Contain at least one number
+- **Token Validation:** All tokens are validated for existence, expiration, and usage status
+- **Clean URLs:** Uses UUIDs in URLs instead of exposing user information
+
+### User Experience
+
+1. User clicks "¿Olvidaste tu contraseña?" on the login page
+2. Enters their registered email address
+3. Receives an email with a secure link (valid for 60 minutes by default)
+4. Clicks the link and is taken to a password reset form
+5. Enters and confirms their new password
+6. Password is updated and they can log in immediately
+
+### Error Messages
+
+The system provides clear, user-friendly error messages:
+- "No existe usuario con ese correo" - Email not found
+- "El enlace es inválido o ha expirado" - Token expired or invalid
+- "Este enlace ya fue utilizado" - Token already used
+- "Las contraseñas no coinciden" - Password mismatch
+- "La contraseña debe tener al menos X caracteres" - Password too short
+- "La contraseña debe contener al menos una letra" - Missing letters
+- "La contraseña debe contener al menos un número" - Missing numbers
+
+### Database Schema
+
+The password reset feature uses the `PasswordResetToken` table:
+
+```sql
+CREATE TABLE password_reset_token (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    token VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL,
+    created_at DATETIME NOT NULL,
+    expiry_date DATETIME NOT NULL,
+    used BOOLEAN NOT NULL DEFAULT FALSE
+);
+```
+
+### Railway Deployment
+
+When deploying to Railway, ensure you set the `APP_BASE_URL` environment variable:
+
+1. Go to your Railway project
+2. Navigate to Variables
+3. Add: `APP_BASE_URL=https://your-railway-app.up.railway.app`
+4. Also configure email settings (use SendGrid for Railway since SMTP is blocked)
+
+---
+
 ## Deploy to Railway
 
 Railway is a cloud platform that makes it easy to deploy Spring Boot applications with minimal configuration. This project includes all necessary files for Railway deployment.
