@@ -75,7 +75,7 @@ public class SendgridTestController {
         } catch (Exception e) {
             logger.error("Failed to send test email to: {}. Error: {}", to, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to send test email: " + e.getMessage());
+                    .body("Failed to send test email. Check server logs for details.");
         }
     }
 }
