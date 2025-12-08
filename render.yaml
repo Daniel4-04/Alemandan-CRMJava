@@ -58,10 +58,9 @@ services:
   # 1. Add PostgreSQL driver to pom.xml, or
   # 2. Use an external MySQL database (recommended for compatibility)
   
-  # - type: pserv
+  # - type: pserv  # PostgreSQL service type in Render
   #   name: alemandan-pos-db
   #   plan: free  # Change to a paid plan for production
-  #   env: docker
   #   ipAllowList: []  # Allow connections from Render services only
   #   databases:
   #     - name: alemandan_pos_db

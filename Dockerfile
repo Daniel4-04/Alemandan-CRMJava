@@ -7,9 +7,6 @@ WORKDIR /build
 # Copy pom.xml first for dependency caching
 COPY pom.xml .
 
-# Download dependencies (this layer will be cached if pom.xml doesn't change)
-RUN mvn dependency:go-offline -B || true
-
 # Copy source code
 COPY src src
 
