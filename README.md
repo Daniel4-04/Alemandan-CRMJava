@@ -1,8 +1,8 @@
-# Alemandan CRM
+# Alemandan POS
 
 ## Descripción general
 
-**Alemandan CRM** es una aplicación web para gestión comercial y ventas pensada para empresas y equipos de trabajo. Permite administrar empleados, proveedores, productos, ventas y mucho más, todo desde un entorno seguro y moderno.  
+**Alemandan POS** es una aplicación web para gestión comercial y ventas pensada para empresas y equipos de trabajo. Permite administrar empleados, proveedores, productos, ventas y mucho más, todo desde un entorno seguro y moderno.  
 El sistema está construido con **Spring Boot**, **Thymeleaf**, **Bootstrap** y utiliza una arquitectura MVC (Modelo-Vista-Controlador) siguiendo buenas prácticas de desarrollo.
 
 ### Funcionalidades principales
@@ -17,7 +17,7 @@ El sistema está construido con **Spring Boot**, **Thymeleaf**, **Bootstrap** y 
 
 ## Descripción del proyecto
 
-Este proyecto académico busca demostrar el desarrollo de un CRM web robusto usando tecnologías Java y Spring Boot.  
+Este proyecto académico busca demostrar el desarrollo de un sistema POS web robusto usando tecnologías Java y Spring Boot.  
 Incluye:
 
 - Autenticación y autorización por roles (admin y empleado)
@@ -33,9 +33,11 @@ Incluye:
 ### 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/Daniel4-04/Alemandan-CRM.git
-cd Alemandan-CRM
+git clone https://github.com/Daniel4-04/Alemandan-CRMJava.git
+cd Alemandan-CRMJava
 ```
+
+> **Nota:** El nombre del repositorio en GitHub mantiene "CRMJava" por razones históricas, pero el proyecto ahora es un sistema POS.
 
 ### 2. Configurar la base de datos
 
@@ -43,11 +45,13 @@ Edita el archivo de configuración de Spring Boot para tu base de datos (por eje
 Ejemplo para MySQL:
 
 ```properties
-spring.datasource.url=jdbc:mysql://localhost:3306/alemandan_crm
+spring.datasource.url=jdbc:mysql://localhost:3306/alemandan_pos
 spring.datasource.username=TU_USUARIO
 spring.datasource.password=TU_CONTRASEÑA
 spring.jpa.hibernate.ddl-auto=update
 ```
+
+> **Nota:** El nombre de la base de datos puede ser cualquiera de tu elección (ej: `alemandan_pos`, `crm_db`, etc.). Asegúrate de actualizar el archivo `application.properties` con el nombre correcto de tu base de datos.
 
 > **Asegúrate de tener tu base de datos creada y configurada.**
 
