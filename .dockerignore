@@ -38,7 +38,3 @@ Thumbs.db
 # Application specific
 uploads/
 application.properties.bak
-
-# Docker files
-Dockerfile
-.dockerignore

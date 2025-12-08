@@ -29,4 +29,5 @@ EXPOSE 8080
 
 # Run the application with PORT environment variable support
 # Render provides PORT env var, which we pass to Spring Boot
-ENTRYPOINT ["java", "-Dserver.port=${PORT}", "-jar", "/app/app.jar"]
+# Using shell form to allow environment variable substitution
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar /app/app.jar"]
