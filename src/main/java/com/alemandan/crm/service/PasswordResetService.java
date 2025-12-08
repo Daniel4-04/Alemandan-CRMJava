@@ -59,10 +59,10 @@ public class PasswordResetService {
         // Set expiration based on configuration
         if (permanentTokens) {
             resetToken.setExpiryDate(null); // Permanent token
-            logger.info("Created permanent password reset token for email: {}", email);
+            logger.debug("Created permanent password reset token for email: {}", email);
         } else {
             resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(tokenExpirationMinutes));
-            logger.info("Created expirable password reset token for email: {} (expires in {} minutes)", 
+            logger.debug("Created expirable password reset token for email: {} (expires in {} minutes)", 
                        email, tokenExpirationMinutes);
         }
 
@@ -121,7 +121,7 @@ public class PasswordResetService {
 
         resetToken.setUsed(true);
         tokenRepository.save(resetToken);
-        logger.info("Token consumed for email: {}", resetToken.getEmail());
+        logger.debug("Token consumed for email: {}", resetToken.getEmail());
         return true;
     }
 
@@ -144,7 +144,7 @@ public class PasswordResetService {
     @Transactional
     public void revokeTokensForEmail(String email) {
         tokenRepository.deleteByEmail(email);
-        logger.info("Revoked all password reset tokens for email: {}", email);
+        logger.debug("Revoked all password reset tokens for email: {}", email);
     }
 
     /**
@@ -155,7 +155,7 @@ public class PasswordResetService {
     public void cleanupExpiredTokens() {
         if (!permanentTokens) {
             tokenRepository.deleteExpiredTokens(LocalDateTime.now());
-            logger.info("Cleaned up expired password reset tokens");
+            logger.debug("Cleaned up expired password reset tokens");
         }
     }
 }
