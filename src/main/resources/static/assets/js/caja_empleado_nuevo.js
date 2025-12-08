@@ -41,6 +41,12 @@ document.addEventListener('DOMContentLoaded', function() {
         btnFinalizarCompra.disabled = true;
         ventaExitosa.style.display = "none";
         ventaError.style.display = "none";
+        
+        // Clear buyer information fields
+        const inputNombre = document.getElementById('inputCompradorNombre');
+        const inputCedula = document.getElementById('inputCompradorCedula');
+        if (inputNombre) inputNombre.value = '';
+        if (inputCedula) inputCedula.value = '';
     }
 
     btnIniciarCompra.addEventListener('click', function() {
@@ -238,13 +244,19 @@ document.addEventListener('DOMContentLoaded', function() {
         ventaExitosa.style.display = "none";
         ventaError.style.display = "none";
 
+        // Get buyer information (optional)
+        const compradorNombre = document.getElementById('inputCompradorNombre')?.value?.trim() || null;
+        const compradorCedula = document.getElementById('inputCompradorCedula')?.value?.trim() || null;
+
         // Prepara datos
         const ventaPayload = {
             detalles: venta.productos.map(p => ({
                 producto: { id: p.id },
                 cantidad: p.cantidad
             })),
-            metodoPago: venta.metodoPago
+            metodoPago: venta.metodoPago,
+            compradorNombre: compradorNombre,
+            compradorCedula: compradorCedula
         };
         console.log("Enviando venta:", ventaPayload);
 

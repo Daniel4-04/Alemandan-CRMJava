@@ -35,6 +35,10 @@ public class Venta {
     private Usuario usuario;
 
     private String metodoPago;
+    
+    // Buyer information (optional)
+    private String compradorCedula;
+    private String compradorNombre;
 
     // getters / setters
     public Long getId() { return id; }
@@ -65,4 +69,10 @@ public class Venta {
 
     public String getMetodoPago() { return metodoPago; }
     public void setMetodoPago(String metodoPago) { this.metodoPago = metodoPago; }
+    
+    public String getCompradorCedula() { return compradorCedula; }
+    public void setCompradorCedula(String compradorCedula) { this.compradorCedula = compradorCedula; }
+    
+    public String getCompradorNombre() { return compradorNombre; }
+    public void setCompradorNombre(String compradorNombre) { this.compradorNombre = compradorNombre; }
 }

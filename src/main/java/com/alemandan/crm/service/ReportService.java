@@ -554,8 +554,25 @@ public class ReportService {
         DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
         String fecha = venta.getFecha() != null ? venta.getFecha().format(dtf) : "";
         Paragraph dateP = new Paragraph(fecha, metaFont);
-        dateP.setSpacingAfter(6f);
+        dateP.setSpacingAfter(2f);
         document.add(dateP);
+        
+        // Buyer information (if provided)
+        if (venta.getCompradorNombre() != null && !venta.getCompradorNombre().trim().isEmpty()) {
+            Paragraph buyerP = new Paragraph("Cliente: " + venta.getCompradorNombre(), metaFont);
+            buyerP.setSpacingAfter(2f);
+            document.add(buyerP);
+        }
+        if (venta.getCompradorCedula() != null && !venta.getCompradorCedula().trim().isEmpty()) {
+            Paragraph cedulaP = new Paragraph("Cédula: " + venta.getCompradorCedula(), metaFont);
+            cedulaP.setSpacingAfter(6f);
+            document.add(cedulaP);
+        } else if (venta.getCompradorNombre() != null && !venta.getCompradorNombre().trim().isEmpty()) {
+            // Add spacing if only name was provided
+            Paragraph spacer = new Paragraph(" ");
+            spacer.setSpacingAfter(6f);
+            document.add(spacer);
+        }
 
         // Group detalles by category name
         Map<String, List<DetalleVenta>> byCategory = new LinkedHashMap<>();

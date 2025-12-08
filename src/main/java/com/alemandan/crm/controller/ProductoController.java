@@ -38,7 +38,7 @@ public class ProductoController {
     private CategoriaRepository categoriaRepository;
 
     // Ruta base donde se guardan las subidas (configurable en application.properties)
-    @Value("${uploads.path:uploads}")
+    @Value("${app.uploads-dir:uploads}")
     private String uploadsPath;
 
     // Listar todos los productos (activos e inactivos) y pasar categorías
