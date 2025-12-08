@@ -37,6 +37,8 @@ git clone https://github.com/Daniel4-04/Alemandan-CRMJava.git
 cd Alemandan-CRMJava
 ```
 
+> **Nota:** El nombre del repositorio en GitHub mantiene "CRMJava" por razones históricas, pero el proyecto ahora es un sistema POS.
+
 ### 2. Configurar la base de datos
 
 Edita el archivo de configuración de Spring Boot para tu base de datos (por ejemplo, `src/main/resources/application.properties`).  
@@ -48,6 +50,8 @@ spring.datasource.username=TU_USUARIO
 spring.datasource.password=TU_CONTRASEÑA
 spring.jpa.hibernate.ddl-auto=update
 ```
+
+> **Nota:** El nombre de la base de datos puede ser cualquiera de tu elección (ej: `alemandan_pos`, `crm_db`, etc.). Asegúrate de actualizar el archivo `application.properties` con el nombre correcto de tu base de datos.
 
 > **Asegúrate de tener tu base de datos creada y configurada.**
 
