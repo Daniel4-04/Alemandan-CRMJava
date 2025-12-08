@@ -88,9 +88,11 @@ set_env_variables() {
             continue
         fi
         
-        # Trim whitespace
-        key=$(echo "$key" | xargs)
-        value=$(echo "$value" | xargs)
+        # Trim whitespace using parameter expansion
+        key="${key#"${key%%[![:space:]]*}"}"   # Remove leading whitespace
+        key="${key%"${key##*[![:space:]]}"}"   # Remove trailing whitespace
+        value="${value#"${value%%[![:space:]]*}"}"  # Remove leading whitespace
+        value="${value%"${value##*[![:space:]]}"}"  # Remove trailing whitespace
         
         if [ -n "$key" ] && [ -n "$value" ]; then
             info "Setting $key"
