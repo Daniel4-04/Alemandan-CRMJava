@@ -16,9 +16,43 @@ SPRING_DATASOURCE_PASSWORD=your_mysql_password
 
 **Note:** Extract host, port, database, username, and password from Railway's MySQL `DATABASE_URL` connection string.
 
-### Mail Configuration (SMTP)
+### Mail Configuration
 
-Configure SMTP settings for email notifications:
+#### Option A: SendGrid API (Recommended for Railway)
+
+**Why SendGrid?** Railway and many PaaS providers block SMTP ports (25, 465, 587) to prevent spam. SendGrid uses HTTP API which is not blocked.
+
+1. **Create a SendGrid Account**:
+   - Sign up at https://sendgrid.com (free tier: 100 emails/day)
+   - Verify your email address
+
+2. **Create an API Key**:
+   - Go to Settings → API Keys
+   - Click "Create API Key"
+   - Name: `Railway-AlemandanPOS`
+   - Permissions: "Full Access" or "Mail Send" only
+   - Copy the API key (shown only once!)
+
+3. **Verify Sender Identity**:
+   - Go to Settings → Sender Authentication
+   - Choose "Single Sender Verification" (easier) or "Domain Authentication" (more professional)
+   - For single sender: verify the email address you'll send from
+   - **Important**: Use the verified email as `SENDER_EMAIL`
+
+4. **Configure Railway Environment Variables**:
+   ```
+   SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+   SENDER_EMAIL=your-verified-email@domain.com
+   ```
+
+**How it works:**
+- Application automatically uses SendGrid API when `SENDGRID_API_KEY` is set
+- If SendGrid fails, falls back to SMTP (if configured)
+- If both fail, errors are logged but app continues working
+
+#### Option B: SMTP Configuration (Alternative)
+
+If you prefer SMTP or SendGrid is not available:
 
 ```
 SPRING_MAIL_HOST=smtp.gmail.com
@@ -29,24 +63,17 @@ SPRING_MAIL_PASSWORD=your-app-password
 
 **Important Notes:**
 
-1. **Railway and PaaS SMTP Restrictions**: Many Platform-as-a-Service providers (including Railway) block outbound connections to common SMTP ports (25, 465, 587) to prevent spam. If you experience SMTP timeouts:
-   
-   - **Option A**: Use a transactional email API provider instead of SMTP:
-     - SendGrid (https://sendgrid.com)
-     - Mailgun (https://www.mailgun.com)
-     - Amazon SES (https://aws.amazon.com/ses)
-     - Postmark (https://postmarkapp.com)
-   
-   - **Option B**: Contact Railway support to whitelist SMTP access for your project
-   
-   - **Option C**: Configure the app to run without email (emails will be logged but not sent)
+1. **Railway SMTP Restrictions**: Railway may block outbound SMTP connections. If you experience timeouts:
+   - Use SendGrid API (Option A) instead
+   - Contact Railway support to whitelist SMTP
+   - Or run without email (emails logged but not sent)
 
-2. **Gmail App Passwords**: If using Gmail, you must use an App Password, not your regular password:
-   - Go to Google Account settings → Security → 2-Step Verification → App passwords
-   - Generate a new app password for "Mail"
-   - Use this 16-character password as `SPRING_MAIL_PASSWORD`
+2. **Gmail App Passwords**: If using Gmail, you must use an App Password:
+   - Go to Google Account → Security → 2-Step Verification → App passwords
+   - Generate password for "Mail"
+   - Use the 16-character password as `SPRING_MAIL_PASSWORD`
 
-3. **Async Email Handling**: The application sends emails asynchronously after database commits. SMTP failures are logged but do not crash the application or return 500 errors to users.
+3. **Async Email Handling**: Emails are sent asynchronously after database commits. Failures are logged but don't crash the app.
 
 ### Memory and Performance Configuration (Optional but Recommended)
 
