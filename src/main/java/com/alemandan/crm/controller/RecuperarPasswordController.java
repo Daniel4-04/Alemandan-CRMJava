@@ -5,6 +5,7 @@ import com.alemandan.crm.model.Usuario;
 import com.alemandan.crm.repository.PasswordResetTokenRepository;
 import com.alemandan.crm.repository.UsuarioRepository;
 import com.alemandan.crm.service.MailService;
+import com.alemandan.crm.service.PasswordResetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,9 +15,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
-import java.util.Optional;
-import java.util.UUID;
 import java.util.regex.Pattern;
 
 @Controller
@@ -32,6 +30,8 @@ public class RecuperarPasswordController {
     private UsuarioRepository usuarioRepo;
     @Autowired
     private PasswordResetTokenRepository tokenRepo;
+    @Autowired
+    private PasswordResetService passwordResetService;
     @Autowired
     private MailService mailService;
     @Autowired
@@ -62,20 +62,8 @@ public class RecuperarPasswordController {
             return "login";
         }
 
-        // Generar token seguro
-        String token = UUID.randomUUID().toString();
-        PasswordResetToken resetToken = new PasswordResetToken();
-        resetToken.setToken(token);
-        resetToken.setEmail(email);
-        resetToken.setCreatedAt(LocalDateTime.now());
-        resetToken.setExpiryDate(LocalDateTime.now().plusMinutes(tokenExpirationMinutes));
-        resetToken.setUsed(false);
-        
-        // Borra tokens anteriores del mismo email
-        tokenRepo.deleteByEmail(email);
-        tokenRepo.save(resetToken);
-        
-        logger.info("Password reset token created for user: {} (expires in {} minutes)", email, tokenExpirationMinutes);
+        // Generate token using service (supports permanent or expirable tokens based on config)
+        String token = passwordResetService.createTokenForEmail(email, usuario.getId());
 
         // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
         try {
@@ -95,9 +83,13 @@ public class RecuperarPasswordController {
 
     @GetMapping("/reset-password")
     public String mostrarFormularioReset(@RequestParam String token, Model model) {
-        String error = validateToken(token);
-        if (error != null) {
-            model.addAttribute("error", error);
+        if (!passwordResetService.validateToken(token)) {
+            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
+            if (expiredToken != null && expiredToken.getUsed()) {
+                model.addAttribute("error", "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.");
+            } else {
+                model.addAttribute("error", "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
+            }
             return "reset_password";
         }
         
@@ -111,14 +103,18 @@ public class RecuperarPasswordController {
                                 @RequestParam String confirmPassword,
                                 Model model) {
         // Validate token first
-        String tokenError = validateToken(token);
-        if (tokenError != null) {
-            model.addAttribute("error", tokenError);
+        if (!passwordResetService.validateToken(token)) {
+            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
+            if (expiredToken != null && expiredToken.getUsed()) {
+                model.addAttribute("error", "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.");
+            } else {
+                model.addAttribute("error", "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
+            }
             return "reset_password";
         }
         
         // Get the valid token
-        PasswordResetToken resetToken = tokenRepo.findValidToken(token, LocalDateTime.now()).get();
+        PasswordResetToken resetToken = tokenRepo.findByToken(token);
         
         // Validate passwords match
         if (!password.equals(confirmPassword)) {
@@ -147,34 +143,12 @@ public class RecuperarPasswordController {
         usuarioRepo.save(usuario);
         
         // Mark token as used
-        resetToken.setUsed(true);
-        tokenRepo.save(resetToken);
+        passwordResetService.consumeToken(token);
         
         logger.info("Password successfully reset for user: {}", resetToken.getEmail());
 
         model.addAttribute("mensaje", "La contraseña fue actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña.");
         return "login";
-    }
-    
-    /**
-     * Validates a password reset token.
-     * 
-     * @param token The token to validate
-     * @return Error message if validation fails, null if token is valid
-     */
-    private String validateToken(String token) {
-        Optional<PasswordResetToken> resetTokenOpt = tokenRepo.findValidToken(token, LocalDateTime.now());
-        
-        if (resetTokenOpt.isEmpty()) {
-            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
-            if (expiredToken != null && expiredToken.getUsed()) {
-                return "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.";
-            } else {
-                return "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.";
-            }
-        }
-        
-        return null; // Token is valid
     }
     
     /**
