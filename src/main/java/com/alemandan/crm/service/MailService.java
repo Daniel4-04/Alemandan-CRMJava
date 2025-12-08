@@ -13,6 +13,7 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
@@ -50,7 +51,7 @@ public class MailService {
      */
     public void enviarAprobacion(String to, String subject, String htmlBody) {
         // Try SendGrid API first if configured
-        if (sendGridApiKey != null && !sendGridApiKey.trim().isEmpty()) {
+        if (StringUtils.hasText(sendGridApiKey)) {
             if (enviarConSendGrid(to, subject, htmlBody)) {
                 return; // Success with SendGrid
             }
