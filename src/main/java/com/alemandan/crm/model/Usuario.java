@@ -22,12 +22,16 @@ public class Usuario {
     @NotBlank
     private String rol; // "ADMIN" o "EMPLEADO"
 
-    @Column(nullable = false)
-    private Boolean activo = true;
+    /**
+     * Mapeamos explícitamente a TINYINT(1) para evitar problemas con BIT(1) y JDBC/Hibernate.
+     * Esto hace que Hibernate genere la columna como TINYINT(1) cuando uses ddl-auto=create/update,
+     * y evita que el driver JDBC devuelva byte[] en vez de Boolean.
+     */
+    @Column(nullable = false, columnDefinition = "TINYINT(1) DEFAULT 1")
+    private Boolean activo = (Boolean) true;
 
     /**
      * Ruta pública relativa a la imagen de perfil (ej: /uploads/users/user_1_12345.jpg).
-     * Añade getter/setter para que el controlador pueda persistirla y las plantillas Thymeleaf la muestren.
      */
     @Column(name = "image_path")
     private String imagePath;
