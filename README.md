@@ -86,6 +86,139 @@ El sistema arrancará en [http://localhost:8080/](http://localhost:8080/)
 
 ---
 
+## Deploy to Railway
+
+Railway is a cloud platform that makes it easy to deploy Spring Boot applications with minimal configuration. This project includes all necessary files for Railway deployment.
+
+### Prerequisites
+
+1. A [Railway account](https://railway.app/) (free tier available)
+2. Your GitHub repository connected to Railway
+3. Railway CLI installed (optional): `npm i -g @railway/cli`
+
+### Quick Deployment Steps
+
+#### Option 1: Using Railway Dashboard (Recommended for beginners)
+
+1. **Connect Repository:**
+   - Go to [Railway Dashboard](https://railway.app/dashboard)
+   - Click "New Project" → "Deploy from GitHub repo"
+   - Select the `Daniel4-04/Alemandan-CRMJava` repository
+
+2. **Add MySQL Database:**
+   - In your Railway project, click "New" → "Database" → "Add MySQL"
+   - Railway will automatically create a `DATABASE_URL` environment variable
+   - Note: Railway's filesystem is **ephemeral** (temporary). For persistent file uploads, configure AWS S3 (see `.env.template`).
+
+3. **Configure Build & Start Commands:**
+   - Go to your service settings → "Settings" tab
+   - Set **Build Command**: `mvn clean package -DskipTests`
+   - Set **Start Command**: `java -Dserver.port=$PORT -jar target/*.jar`
+   - Railway will automatically set the `PORT` environment variable
+
+4. **Set Environment Variables:**
+   - Go to "Variables" tab in your service
+   - Map Railway's MySQL `DATABASE_URL` to Spring properties:
+     - Copy the values from Railway's MySQL plugin environment variables
+     - Set `SPRING_DATASOURCE_URL` to the JDBC URL (format: `jdbc:mysql://host:port/database?useSSL=false&serverTimezone=UTC`)
+     - Set `SPRING_DATASOURCE_USERNAME` to MySQL user
+     - Set `SPRING_DATASOURCE_PASSWORD` to MySQL password
+   - Add other required variables from `.env.template`:
+     - `SPRING_MAIL_HOST`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` (for email functionality)
+     - `JWT_SECRET` (if using JWT authentication)
+     - AWS S3 credentials (for persistent file storage)
+   - **Important:** Ensure `server.port=${PORT:8080}` is set in `src/main/resources/application.properties`
+
+5. **Deploy:**
+   - Railway will automatically deploy when you push to your main branch
+   - Or click "Deploy" button in the dashboard to trigger manual deployment
+
+6. **Verify Deployment:**
+   - Once deployed, click on your service to get the public URL
+   - Test health endpoint: `https://your-app.railway.app/actuator/health`
+   - Access your application: `https://your-app.railway.app/`
+
+#### Option 2: Using Railway CLI
+
+1. **Initialize Railway Project:**
+   ```bash
+   ./deploy-railway.sh init
+   ```
+
+2. **Add MySQL in Railway Dashboard:**
+   - Go to your project and add the MySQL database plugin
+
+3. **Configure Environment Variables:**
+   ```bash
+   # Copy template and edit with your values
+   cp .env.template .env
+   # Edit .env file with your actual credentials
+   
+   # Set variables in Railway
+   ./deploy-railway.sh env
+   ```
+
+4. **Deploy:**
+   ```bash
+   ./deploy-railway.sh deploy
+   ```
+
+5. **View Logs:**
+   ```bash
+   ./deploy-railway.sh logs
+   ```
+
+### Important Notes
+
+#### Server Port Configuration
+**CRITICAL:** Railway requires your application to bind to the port specified in the `PORT` environment variable. Ensure your `src/main/resources/application.properties` includes:
+
+```properties
+server.port=${PORT:8080}
+```
+
+If this line is missing, add it to your `application.properties` file before deploying.
+
+#### Database Configuration
+- Railway provides managed MySQL databases with automatic backups
+- The `DATABASE_URL` from Railway needs to be mapped to Spring's datasource properties
+- For phpMyAdmin users: Railway MySQL works similarly to local phpMyAdmin setup
+- Railway automatically handles SSL/TLS for database connections
+
+#### File Storage
+- Railway's filesystem is **ephemeral** - uploaded files will be lost on each deployment
+- For persistent file storage, configure AWS S3:
+  - Add S3 credentials to environment variables (see `.env.template`)
+  - Update your file upload logic to use S3 instead of local filesystem
+  - The `uploads` directory will only work temporarily
+
+#### Environment Variables
+- Never commit `.env` files with real secrets to your repository
+- Use `.env.template` as a reference for required variables
+- Set all sensitive values in Railway's Variables section
+- Railway automatically encrypts environment variables
+
+#### Health Checks
+- Railway can monitor your app using health endpoints
+- Spring Boot Actuator provides `/actuator/health` endpoint
+- Configure custom health checks in Railway settings if needed
+
+### Troubleshooting
+
+- **Build fails:** Check Maven logs in Railway dashboard. Ensure Java 17 is available.
+- **App crashes on startup:** Verify database connection and all required environment variables are set
+- **Port binding errors:** Ensure `server.port=${PORT:8080}` is in `application.properties`
+- **Database connection fails:** Double-check JDBC URL format and credentials
+- **File uploads disappear:** Migrate to S3 for persistent storage
+
+### Additional Resources
+
+- [Railway Documentation](https://docs.railway.app/)
+- [Railway CLI Reference](https://docs.railway.app/develop/cli)
+- [Spring Boot on Railway](https://docs.railway.app/guides/spring-boot)
+
+---
+
 ## Créditos y agradecimientos
 
 - Proyecto académico para demostración de desarrollo web con Java Spring Boot
