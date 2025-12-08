@@ -185,6 +185,12 @@ curl -X POST "https://your-railway-app.railway.app/internal/test-mail?to=your-em
 curl -X POST "http://localhost:8080/internal/test-mail?to=your-email@example.com"
 ```
 
+**Security Note:**
+- The `/internal/test-mail` endpoint is for testing and debugging purposes only
+- In production, this endpoint should be secured with authentication or IP whitelisting
+- Consider adding Spring Security rules to restrict access to administrators
+- Or remove the endpoint entirely once email configuration is verified
+
 **Expected behavior:**
 - If `SENDGRID_API_KEY` is configured: Email sends via SendGrid API
 - If SendGrid fails or is not configured: Falls back to SMTP (if configured)
