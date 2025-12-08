@@ -88,32 +88,35 @@ El sistema arrancará en [http://localhost:8080/](http://localhost:8080/)
 
 ## Password Reset Feature
 
-The application includes a secure password reset flow that allows users to recover their accounts via email.
+The application includes a secure password reset flow that allows users to recover their accounts via email with support for both permanent and expirable tokens.
 
 ### How it Works
 
 1. **Request Reset:** User enters their email on the login page
-2. **Token Generation:** System generates a secure UUID token with configurable expiration (default: 60 minutes)
-3. **Email Delivery:** User receives an email with a password reset link
-4. **Password Update:** User clicks the link, enters a new password, and the token is marked as used
+2. **Token Generation:** System generates a secure UUID token that can be configured as permanent (never expires) or expirable
+3. **Email Delivery:** User receives an email with a password reset link containing the token
+4. **Password Update:** User clicks the link, enters a new password meeting security requirements, and the token is marked as used
+5. **One-time Use:** Tokens can only be used once, even if permanent
 
 ### Configuration
 
-#### Required Environment Variables
-
-Set these in your environment or `.env` file (see `.env.template` for examples):
+#### Password Reset Settings
 
 ```properties
-# Application base URL for email links
-# Development: http://localhost:8080
-# Production: https://yourdomain.com
-APP_BASE_URL=https://yourdomain.com
+# Permanent tokens (no expiration) by default
+# Set to false to enable token expiration
+security.password.reset.permanent=true
 
-# Token expiration time in minutes (default: 60)
-PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=60
+# Token expiration time in minutes (only used if permanent=false, default: 60)
+security.password.reset.token.expiration-minutes=60
 
 # Minimum password length (default: 8 characters)
-PASSWORD_RESET_MIN_PASSWORD_LENGTH=8
+security.password.reset.min-password-length=8
+
+# Application base URL for email links (REQUIRED)
+# Development: http://localhost:8080
+# Production: https://yourdomain.com
+app.base.url=https://yourdomain.com
 ```
 
 #### Email Configuration
@@ -122,36 +125,37 @@ The password reset feature requires email to be configured. The application supp
 
 **Option A: SendGrid API (Recommended for production)**
 ```properties
-SENDGRID_API_KEY=SG.your_api_key_here
-SENDER_EMAIL=noreply@yourdomain.com
+sendgrid.api.key=SG.your_api_key_here
+sendgrid.sender.email=noreply@yourdomain.com
 ```
 
 **Option B: SMTP (for development or alternative providers)**
 ```properties
-SPRING_MAIL_HOST=smtp.gmail.com
-SPRING_MAIL_PORT=587
-SPRING_MAIL_USERNAME=your_email@gmail.com
-SPRING_MAIL_PASSWORD=your_app_password
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=your_email@gmail.com
+spring.mail.password=your_app_password
 ```
 
 > **Note:** Railway blocks SMTP ports (25, 465, 587). Use SendGrid API for Railway deployments.
 
 ### Security Features
 
-- **Token Expiration:** Tokens automatically expire after the configured time (default: 60 minutes)
-- **Single Use:** Each token can only be used once to reset a password
+- **Token Configuration:** Support for both permanent (never expires) and expirable tokens
+- **Single Use:** Each token can only be used once to reset a password, even if permanent
 - **Password Strength:** Passwords must:
   - Be at least 8 characters long (configurable)
   - Contain at least one letter
   - Contain at least one number
-- **Token Validation:** All tokens are validated for existence, expiration, and usage status
+- **Token Validation:** All tokens are validated for existence, expiration (if applicable), and usage status
 - **Clean URLs:** Uses UUIDs in URLs instead of exposing user information
+- **Token Revocation:** Ability to revoke all tokens for a specific email address
 
 ### User Experience
 
 1. User clicks "¿Olvidaste tu contraseña?" on the login page
 2. Enters their registered email address
-3. Receives an email with a secure link (valid for 60 minutes by default)
+3. Receives an email with a secure link (permanent by default, or configurable expiration)
 4. Clicks the link and is taken to a password reset form
 5. Enters and confirms their new password
 6. Password is updated and they can log in immediately
@@ -169,31 +173,89 @@ The system provides clear, user-friendly error messages:
 
 ### Database Schema
 
-The password reset feature uses the `PasswordResetToken` table:
+The password reset feature uses the `password_reset_token` table:
 
 ```sql
 CREATE TABLE password_reset_token (
     id BIGINT AUTO_INCREMENT PRIMARY KEY,
     token VARCHAR(255) NOT NULL UNIQUE,
     email VARCHAR(255) NOT NULL,
-    created_at DATETIME NOT NULL,
-    expiry_date DATETIME NOT NULL,
-    used BOOLEAN NOT NULL DEFAULT FALSE
+    user_id BIGINT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    expiry_date DATETIME NULL,  -- NULL for permanent tokens
+    used BOOLEAN NOT NULL DEFAULT FALSE,
+    INDEX idx_token (token),
+    INDEX idx_email (email)
 );
 ```
 
-### Railway Deployment
+---
 
-When deploying to Railway, ensure you set the `APP_BASE_URL` environment variable:
+## File Uploads Configuration
 
-1. Go to your Railway project
-2. Navigate to Variables
-3. Add: `APP_BASE_URL=https://your-railway-app.up.railway.app`
-4. Also configure email settings (use SendGrid for Railway since SMTP is blocked)
+The application supports uploading product images with configurable storage location.
+
+### Configuration
+
+```properties
+# Directory for uploaded files (configurable for production)
+app.uploads-dir=uploads  # Default: ./uploads
+# For production: /app/uploads or cloud storage path
+
+# Multipart file upload limits
+spring.servlet.multipart.max-file-size=10MB
+spring.servlet.multipart.max-request-size=20MB
+```
+
+### Features
+
+- **Automatic Directory Creation:** Upload directory is created on application startup if it doesn't exist
+- **Configurable Location:** Use `app.uploads-dir` to set custom upload directory
+- **File Validation:** Supports standard image formats with size limits
+- **URL Mapping:** Files are accessible via `/uploads/**` URL pattern
+
+### Important Notes for Railway Deployment
+
+⚠️ **Railway filesystem is ephemeral** - files uploaded to local filesystem are lost when the container restarts or redeploys.
+
+For persistent file storage on Railway, consider:
+1. Using AWS S3 or similar cloud storage (recommended)
+2. Using Railway volumes (limited availability)
+3. Accepting that product images will be lost on redeployment
 
 ---
 
-## Deploy to Railway
+## Buyer Information in Sales
+
+The POS system now supports optional buyer information (name and ID) for each sale.
+
+### Features
+
+- **Optional Fields:** Cashier can optionally enter buyer's name and ID (cédula) during sale
+- **Receipt Integration:** Buyer information is displayed on the PDF receipt when provided
+- **Database Storage:** Buyer data is persisted with each sale for future reference
+
+### Database Schema
+
+Added fields to the `venta` table:
+
+```sql
+ALTER TABLE venta 
+  ADD COLUMN comprador_cedula VARCHAR(50) NULL,
+  ADD COLUMN comprador_nombre VARCHAR(255) NULL;
+```
+
+### Usage
+
+1. When creating a sale in the POS interface, cashier can fill in:
+   - **Nombre del comprador** (Buyer's name) - Optional
+   - **Cédula** (ID number) - Optional
+2. Information appears on the generated receipt PDF
+3. Both fields are optional - sales can be completed without buyer information
+
+---
+
+## Railway Deployment
 
 Railway is a cloud platform that makes it easy to deploy Spring Boot applications with minimal configuration. This project includes all necessary files for Railway deployment.
 
