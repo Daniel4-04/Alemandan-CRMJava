@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionalEventListener;
 import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.web.util.HtmlUtils;
 
 import java.util.Optional;
 
@@ -45,11 +46,15 @@ public class NotificacionesListener {
             
             if (usuarioOpt.isPresent()) {
                 Usuario usuario = usuarioOpt.get();
+                // Escape user input to prevent XSS in HTML emails
+                String nombreEscaped = HtmlUtils.htmlEscape(usuario.getNombre());
+                String emailEscaped = HtmlUtils.htmlEscape(usuario.getEmail());
+                
                 // Build HTML body for approval email
                 String htmlBody = "<html><body>" +
                         "<h2>¡Bienvenido a AlemandanPOS!</h2>" +
-                        "<p>Hola " + usuario.getNombre() + ",</p>" +
-                        "<p>Tu acceso ha sido aprobado. Puedes ingresar al sistema con tu usuario: <strong>" + usuario.getEmail() + "</strong></p>" +
+                        "<p>Hola " + nombreEscaped + ",</p>" +
+                        "<p>Tu acceso ha sido aprobado. Puedes ingresar al sistema con tu usuario: <strong>" + emailEscaped + "</strong></p>" +
                         "<p>Recuerda cambiar tu contraseña en el primer ingreso.</p>" +
                         "<p>Saludos,<br/>Equipo AlemandanPOS</p>" +
                         "</body></html>";
