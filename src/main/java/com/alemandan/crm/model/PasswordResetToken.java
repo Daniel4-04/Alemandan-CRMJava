@@ -22,7 +22,7 @@ public class PasswordResetToken {
     private LocalDateTime expiryDate;
     
     @Column(nullable = false)
-    private Boolean used = false;
+    private boolean used = false;
 
     // Getters y setters
 
@@ -56,10 +56,10 @@ public class PasswordResetToken {
     public void setExpiryDate(LocalDateTime expiryDate) {
         this.expiryDate = expiryDate;
     }
-    public Boolean getUsed() {
+    public boolean getUsed() {
         return used;
     }
-    public void setUsed(Boolean used) {
+    public void setUsed(boolean used) {
         this.used = used;
     }
 }

@@ -95,15 +95,9 @@ public class RecuperarPasswordController {
 
     @GetMapping("/reset-password")
     public String mostrarFormularioReset(@RequestParam String token, Model model) {
-        Optional<PasswordResetToken> resetTokenOpt = tokenRepo.findValidToken(token, LocalDateTime.now());
-        
-        if (resetTokenOpt.isEmpty()) {
-            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
-            if (expiredToken != null && expiredToken.getUsed()) {
-                model.addAttribute("error", "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.");
-            } else {
-                model.addAttribute("error", "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
-            }
+        String error = validateToken(token);
+        if (error != null) {
+            model.addAttribute("error", error);
             return "reset_password";
         }
         
@@ -117,19 +111,14 @@ public class RecuperarPasswordController {
                                 @RequestParam String confirmPassword,
                                 Model model) {
         // Validate token first
-        Optional<PasswordResetToken> resetTokenOpt = tokenRepo.findValidToken(token, LocalDateTime.now());
-        
-        if (resetTokenOpt.isEmpty()) {
-            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
-            if (expiredToken != null && expiredToken.getUsed()) {
-                model.addAttribute("error", "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.");
-            } else {
-                model.addAttribute("error", "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
-            }
+        String tokenError = validateToken(token);
+        if (tokenError != null) {
+            model.addAttribute("error", tokenError);
             return "reset_password";
         }
         
-        PasswordResetToken resetToken = resetTokenOpt.get();
+        // Get the valid token
+        PasswordResetToken resetToken = tokenRepo.findValidToken(token, LocalDateTime.now()).get();
         
         // Validate passwords match
         if (!password.equals(confirmPassword)) {
@@ -165,6 +154,27 @@ public class RecuperarPasswordController {
 
         model.addAttribute("mensaje", "La contraseña fue actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña.");
         return "login";
+    }
+    
+    /**
+     * Validates a password reset token.
+     * 
+     * @param token The token to validate
+     * @return Error message if validation fails, null if token is valid
+     */
+    private String validateToken(String token) {
+        Optional<PasswordResetToken> resetTokenOpt = tokenRepo.findValidToken(token, LocalDateTime.now());
+        
+        if (resetTokenOpt.isEmpty()) {
+            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
+            if (expiredToken != null && expiredToken.getUsed()) {
+                return "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.";
+            } else {
+                return "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.";
+            }
+        }
+        
+        return null; // Token is valid
     }
     
     /**
