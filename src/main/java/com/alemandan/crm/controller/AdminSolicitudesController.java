@@ -1,11 +1,15 @@
 package com.alemandan.crm.controller;
 
+import com.alemandan.crm.events.UsuarioRegistradoEvent;
 import com.alemandan.crm.model.SolicitudRegistro;
 import com.alemandan.crm.model.Usuario;
 import com.alemandan.crm.repository.SolicitudRegistroRepository;
 import com.alemandan.crm.repository.UsuarioRepository;
 import com.alemandan.crm.service.MailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +19,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/admin/solicitudes")
 public class AdminSolicitudesController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminSolicitudesController.class);
+
     @Autowired
     private SolicitudRegistroRepository solicitudRepo;
     @Autowired
@@ -23,6 +29,8 @@ public class AdminSolicitudesController {
     private PasswordEncoder passwordEncoder;
     @Autowired
     private MailService mailService;
+    @Autowired
+    private ApplicationEventPublisher eventPublisher;
 
     @GetMapping
     public String verSolicitudesPendientes(Model model) {
@@ -43,10 +51,11 @@ public class AdminSolicitudesController {
         usuario.setPassword(passwordEncoder.encode(solicitud.getPassword()));
         usuario.setActivo(true);
         usuario.setRol("EMPLEADO");
-        usuarioRepo.save(usuario);
+        usuario = usuarioRepo.save(usuario);
 
-        // Enviar correo de aprobación
-        mailService.enviarAprobacion(usuario.getEmail(), usuario.getNombre(), usuario.getEmail());
+        // Publish event for async email sending after commit
+        eventPublisher.publishEvent(new UsuarioRegistradoEvent(usuario.getId()));
+        logger.info("Published UsuarioRegistradoEvent for user ID: {}", usuario.getId());
 
         return "redirect:/admin/solicitudes";
     }

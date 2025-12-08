@@ -5,6 +5,8 @@ import com.alemandan.crm.model.Usuario;
 import com.alemandan.crm.repository.PasswordResetTokenRepository;
 import com.alemandan.crm.repository.UsuarioRepository;
 import com.alemandan.crm.service.MailService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
@@ -16,6 +18,8 @@ import java.util.UUID;
 
 @Controller
 public class RecuperarPasswordController {
+
+    private static final Logger logger = LoggerFactory.getLogger(RecuperarPasswordController.class);
 
     @Autowired
     private UsuarioRepository usuarioRepo;
@@ -51,9 +55,14 @@ public class RecuperarPasswordController {
         tokenRepo.deleteByEmail(email); // Borra tokens anteriores
         tokenRepo.save(resetToken);
 
-        // Enviar correo con enlace de recuperación
-        String link = "http://localhost:8080/reset-password?token=" + token;
-        mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
+        // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
+        try {
+            String link = "http://localhost:8080/reset-password?token=" + token;
+            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
+        } catch (Exception e) {
+            // Log error but continue - token is already saved
+            logger.error("Failed to send password recovery email to {}, but token was created", email, e);
+        }
 
         model.addAttribute("recuperarMensaje", "Se ha enviado un enlace de recuperación a tu correo.");
         // Mantener el slide de recuperar activo
