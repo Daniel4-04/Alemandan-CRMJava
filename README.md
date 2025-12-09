@@ -167,15 +167,15 @@ spring.mail.password=your_app_password
 - Monitor and alert on password reset activity
 - Consider implementing rate limiting on password reset requests
 
-**Current Configuration:**
+**Recommended Configuration for Production (instead of default):**
 ```properties
-# Default: Permanent tokens (security.password.reset.permanent=true)
-# For better security, set to false and configure expiration time
+# Default is permanent tokens (security.password.reset.permanent=true)
+# For better security in production, override with these settings:
 PASSWORD_RESET_PERMANENT=false
 PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=30  # 30 minutes recommended
 ```
 
-The permanent token feature was implemented by specific request for this deployment. For production environments, we strongly recommend enabling token expiration.
+The permanent token feature was implemented by specific request for this deployment. For production environments, we strongly recommend enabling token expiration as shown above.
 
 ### User Experience
 
@@ -329,8 +329,8 @@ Railway is a cloud platform that makes it easy to deploy Spring Boot application
      - See [RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for detailed SendGrid configuration
    - **Application Base URL (REQUIRED for password reset emails):**
      - `APP_BASE_URL=https://alemandan-crmjava-production.up.railway.app`
+     - **IMPORTANT:** Replace with your actual Railway public URL if you're deploying a different instance
      - This is used to generate password reset links in emails
-     - Replace with your actual Railway public URL if different
    - **Password Reset Configuration (Optional):**
      - `PASSWORD_RESET_PERMANENT=true` (default: tokens never expire)
      - `PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=60` (only used if PERMANENT=false)
