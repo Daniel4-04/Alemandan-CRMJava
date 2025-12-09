@@ -78,9 +78,15 @@
                             <i class="fas fa-file-pdf"></i> Generar Informe Avanzado (PDF)
                         </a>
 
+                        <a th:href="@{/ventas/reporte/excel(
+                                from=${param.fechaInicio}, to=${param.fechaFin}, productoId=${param.productoId}
+                            )}" class="ventas-export-btn">
+                            <i class="fas fa-file-excel"></i> Generar Informe Avanzado (Excel)
+                        </a>
+
                         <a th:href="@{/admin/ventas/exportar-excel(
                                 fechaInicio=${param.fechaInicio}, fechaFin=${param.fechaFin}, usuarioId=${param.usuarioId}, productoId=${param.productoId}, metodoPago=${param.metodoPago}
-                            )}" class="ventas-export-btn"><i class="fas fa-file-excel"></i> Exportar Excel</a>
+                            )}" class="ventas-export-btn"><i class="fas fa-file-excel"></i> Exportar Excel (resumen)</a>
                     </div>
                 </form>
                 <div class="ventas-table-bg">

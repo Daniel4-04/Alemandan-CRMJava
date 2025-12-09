@@ -13,7 +13,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -25,6 +27,7 @@ import java.util.Optional;
  * en AdminVentaController para evitar colisiones de rutas. Aquí solo quedan:
  * - GET  /ventas/reporte        -> formulario del reporte avanzado
  * - GET  /ventas/reporte/pdf    -> descarga del informe avanzado (PDF)
+ * - GET  /ventas/reporte/excel  -> descarga del informe avanzado (Excel)
  */
 @Controller
 public class ReportController {
@@ -72,6 +75,55 @@ public class ReportController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", filename);
         return ResponseEntity.ok().headers(headers).body(pdf);
+    }
+
+    @GetMapping("/ventas/reporte/excel")
+    public void descargarReporteExcel(
+            @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
+            @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
+            @RequestParam(value = "productoId", required = false) Long productoId,
+            HttpServletResponse response) {
+        try {
+            LocalDate today = LocalDate.now();
+            if (to == null) to = today;
+            if (from == null) from = today.minusDays(30);
+
+            LocalDateTime start = from.atStartOfDay();
+            LocalDateTime end = to.atTime(23, 59, 59);
+
+            logger.info("Generando reporte avanzado Excel: from={} to={} productoId={}", start, end, productoId);
+
+            byte[] excel = reportService.generarReporteVentasExcel(start, end, productoId);
+
+            String fileSuffix = "";
+            if (productoId != null) {
+                Optional<Producto> opt = productoRepository.findById(productoId);
+                String prodName = opt.map(Producto::getNombre).orElse("prod" + productoId);
+                fileSuffix = "_" + sanitizeFilename(prodName);
+            }
+            String filename = "reporte_ventas_" + from + "_" + to + fileSuffix + ".xlsx";
+
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+            response.setContentLength(excel.length);
+
+            try (OutputStream os = response.getOutputStream()) {
+                os.write(excel);
+                os.flush();
+            }
+
+            logger.info("Reporte avanzado Excel exportado exitosamente: {} bytes", excel.length);
+        } catch (Exception e) {
+            logger.error("Error al exportar reporte avanzado Excel: {}", e.getMessage(), e);
+            try {
+                // Send error response with generic message (detailed error already logged)
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                        "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
+            } catch (Exception sendErrorException) {
+                // If sending error fails, log it - response may already be committed
+                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            }
+        }
     }
 
     private String sanitizeFilename(String s) {

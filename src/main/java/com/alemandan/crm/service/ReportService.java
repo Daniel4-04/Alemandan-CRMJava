@@ -6,6 +6,7 @@ import com.alemandan.crm.model.DetalleVenta;
 import com.alemandan.crm.repository.ProductoRepository;
 import com.alemandan.crm.repository.VentaRepository;
 import com.alemandan.crm.service.pdf.HeaderFooterEvent;
+import com.alemandan.crm.util.ExcelReportUtilAvanzado;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -275,6 +276,47 @@ public class ReportService {
         }
 
         document.close();
+        return baos.toByteArray();
+    }
+
+    /* ------------------ Informe avanzado Excel (streaming) ------------------ */
+
+    /**
+     * Genera el reporte avanzado en formato Excel (.xlsx) usando Apache POI.
+     * Similar al PDF pero sin gráficos (solo datos tabulares).
+     * No requiere bibliotecas nativas, funciona en Railway.
+     *
+     * @param from Fecha inicio del periodo
+     * @param to Fecha fin del periodo
+     * @param productoId Filtro opcional por producto
+     * @return Datos del Excel como byte array para streaming
+     * @throws Exception Si hay error al generar el Excel
+     */
+    public byte[] generarReporteVentasExcel(LocalDateTime from, LocalDateTime to, Long productoId) throws Exception {
+        logger.info("Generando reporte avanzado Excel: from={}, to={}, productoId={}", from, to, productoId);
+
+        // Recopilar datos (misma lógica que el PDF)
+        BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
+        Long count = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
+        List<Object[]> topProductos = ventaRepository.topProductosBetween(from, to);
+        List<Object[]> topVendedores = ventaRepository.topVendedoresBetween(from, to);
+        List<Object[]> stockList = productoRepository.stockProductos();
+        List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
+
+        // Generar Excel usando la utilidad
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        try {
+            ExcelReportUtilAvanzado.generarReporteAvanzadoExcel(
+                    from, to, totalVentas, count,
+                    topProductos, topVendedores, stockList, ventasPorDia,
+                    baos
+            );
+            logger.info("Reporte avanzado Excel generado exitosamente: {} bytes", baos.size());
+        } catch (Exception e) {
+            logger.error("Error al generar reporte avanzado Excel: {}", e.getMessage(), e);
+            throw e;
+        }
+
         return baos.toByteArray();
     }
 
