@@ -648,7 +648,8 @@ public class ReportService {
                 BigDecimal minAmount = null;
                 
                 for (Object[] row : ventasPorDia) {
-                    if (row[1] == null) continue; // Skip null values
+                    // Skip rows with null sales amounts
+                    if (row[1] == null) continue;
                     
                     BigDecimal amount = numberToBigDecimal((Number) row[1]);
                     
@@ -689,7 +690,8 @@ public class ReportService {
                 BigDecimal minAmount = null;
                 
                 for (Object[] row : ventasPorMes) {
-                    if (row[1] == null) continue; // Skip null values
+                    // Skip rows with null sales amounts
+                    if (row[1] == null) continue;
                     
                     BigDecimal amount = numberToBigDecimal((Number) row[1]);
                     
