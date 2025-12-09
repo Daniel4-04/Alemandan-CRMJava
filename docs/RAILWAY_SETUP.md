@@ -110,6 +110,54 @@ server.port=${PORT:8080}
 
 No manual configuration needed.
 
+### Application Base URL (Required for Password Reset)
+
+The application needs to know its public URL to generate password reset links in emails:
+
+```
+APP_BASE_URL=https://your-app-name.up.railway.app
+```
+
+**Important:**
+- Replace `your-app-name` with your actual Railway deployment URL
+- Find your Railway URL in: Railway Dashboard → Deployments → Settings → Domains
+- This variable is **required** for password reset emails to work correctly
+- Password reset links will be formatted as: `{APP_BASE_URL}/password-reset.html?token={token}`
+- If not set, defaults to `http://localhost:8080` (which won't work in production)
+
+**Example:**
+```
+APP_BASE_URL=https://alemandan-crmjava-production.up.railway.app
+```
+
+### Password Reset Configuration (Optional)
+
+Fine-tune password reset behavior:
+
+```
+PASSWORD_RESET_PERMANENT=true
+PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=60
+PASSWORD_RESET_MIN_PASSWORD_LENGTH=8
+```
+
+**Defaults:**
+- Tokens are permanent (never expire) by default for user convenience
+- Tokens are single-use (marked as used after password reset)
+- Minimum password length is 8 characters with letters and numbers required
+
+### File Upload Configuration
+
+```
+APP_UPLOADS_DIR=/app/uploads
+SPRING_SERVLET_MULTIPART_LOCATION=/tmp
+```
+
+**Important Notes:**
+- Railway's filesystem is **ephemeral** - uploaded files are lost on redeployment
+- For production with persistent images, configure AWS S3 (see `.env.template`)
+- The `/app/uploads` directory is created automatically on startup
+- Files are accessible via `/uploads/**` URL pattern
+
 ## Deployment Steps
 
 1. **Create a Railway Project**
@@ -131,6 +179,77 @@ No manual configuration needed.
    - Check application logs for SMTP connection issues
 
 ## Troubleshooting
+
+### Password Reset Email Issues
+
+**Problem:** Password reset emails are not being sent
+
+**Solutions:**
+1. **Verify SendGrid Configuration:**
+   - Check `SENDGRID_API_KEY` is set in Railway environment variables
+   - Verify `SENDER_EMAIL` matches your verified SendGrid sender email
+   - Test SendGrid using `/internal/test-mail` endpoint
+   - Check Railway logs for SendGrid API errors
+
+2. **Verify APP_BASE_URL:**
+   - Must be set to your actual Railway public URL
+   - Check password reset emails contain the correct link
+   - Link should be: `https://your-app.railway.app/password-reset.html?token=...`
+
+3. **Common Errors in Logs:**
+   - `SendGrid API returned error status 401` - Invalid API key
+   - `SendGrid API returned error status 403` - Sender email not verified
+   - `Failed to send password recovery email` - Check full error for details
+
+**Testing Password Reset:**
+```bash
+# 1. Trigger password reset from login page
+# 2. Check Railway logs for email sending
+railway logs | grep -i "password reset\|sendgrid\|email"
+
+# 3. Test email endpoint directly
+curl -X POST "https://your-app.railway.app/internal/test-mail?to=your-email@example.com"
+```
+
+### PDF/Excel Export Issues
+
+**Problem:** Exports fail with HTTP 500 error
+
+**Common Causes:**
+1. **Insufficient Memory:**
+   - PDF generation with charts can be memory-intensive
+   - Solution: Add `JAVA_TOOL_OPTIONS=-Xmx768m` or upgrade Railway plan
+
+2. **Database Connection Timeout:**
+   - Large exports query significant data
+   - Solution: Reduce date range, check database is responsive
+
+3. **Missing Dependencies:**
+   - Verify iText PDF and Apache POI are in pom.xml
+   - Solution: Ensure Maven build includes all dependencies
+
+**Debugging Steps:**
+```bash
+# Check logs for specific export errors
+railway logs | grep -i "export\|pdf\|excel\|OutOfMemoryError"
+
+# Test with small dataset first
+# Use a date range of 1 week instead of months
+
+# Monitor memory usage during export
+railway logs | grep -i "memory\|heap"
+```
+
+**Working Exports:**
+- ✅ Sales summary PDF (admin dashboard) - uses streaming, minimal memory
+- ✅ Employee sales PDF - generates in-memory, streams to response
+- ✅ Excel exports - uses Apache POI streaming API
+
+All export implementations follow best practices:
+- Generate in-memory (ByteArrayOutputStream or direct to response)
+- No temporary files on filesystem
+- Proper error handling with generic error messages
+- Content-Disposition headers for download
 
 ### SMTP Connection Timeouts
 
