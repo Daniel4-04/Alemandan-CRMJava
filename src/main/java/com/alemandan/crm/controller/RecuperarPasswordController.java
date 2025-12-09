@@ -36,6 +36,9 @@ public class RecuperarPasswordController {
     
     @Value("${security.password.reset.min-password-length:8}")
     private int minPasswordLength;
+    
+    @Value("${security.password.reset.session-timeout-minutes:30}")
+    private int sessionTimeoutMinutes;
 
     @GetMapping("/recuperar")
     public String mostrarFormularioRecuperar(Model model) {
@@ -64,13 +67,12 @@ public class RecuperarPasswordController {
         // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
         try {
             String link = appBaseUrl + "/reset-password";
-            // Log the password reset link for Railway debugging (when SMTP is blocked)
-            logger.info("Password reset link generated for {}: {}", email, link);
-            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
+            // Log password reset request (email only for security)
             logger.info("Password reset email sent to: {}", email);
+            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
         } catch (Exception e) {
             // Log error but continue - session is already set
-            logger.error("Failed to send password recovery email to {}", email, e);
+            logger.error("Failed to send password recovery email to: {}", email, e);
         }
 
         model.addAttribute("recuperarMensaje", "Se ha enviado un enlace de recuperación a tu correo.");
@@ -114,9 +116,9 @@ public class RecuperarPasswordController {
             return "reset_password";
         }
         
-        // Check session hasn't expired (30 minutes)
+        // Check session hasn't expired (configurable timeout)
         long sessionAge = System.currentTimeMillis() - authorizedTime;
-        long maxAge = 30 * 60 * 1000; // 30 minutes in milliseconds
+        long maxAge = sessionTimeoutMinutes * 60 * 1000; // Convert minutes to milliseconds
         if (sessionAge > maxAge) {
             session.removeAttribute("resetAuthorizedEmail");
             session.removeAttribute("resetAuthorizedTime");
