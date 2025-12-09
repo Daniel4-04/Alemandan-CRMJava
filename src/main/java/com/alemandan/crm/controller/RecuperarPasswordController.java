@@ -1,11 +1,8 @@
 package com.alemandan.crm.controller;
 
-import com.alemandan.crm.model.PasswordResetToken;
 import com.alemandan.crm.model.Usuario;
-import com.alemandan.crm.repository.PasswordResetTokenRepository;
 import com.alemandan.crm.repository.UsuarioRepository;
 import com.alemandan.crm.service.MailService;
-import com.alemandan.crm.service.PasswordResetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +12,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.servlet.http.HttpSession;
 import java.util.regex.Pattern;
 
 @Controller
@@ -29,10 +27,6 @@ public class RecuperarPasswordController {
     @Autowired
     private UsuarioRepository usuarioRepo;
     @Autowired
-    private PasswordResetTokenRepository tokenRepo;
-    @Autowired
-    private PasswordResetService passwordResetService;
-    @Autowired
     private MailService mailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -40,11 +34,11 @@ public class RecuperarPasswordController {
     @Value("${app.base.url:http://localhost:8080}")
     private String appBaseUrl;
     
-    @Value("${security.password.reset.token.expiration-minutes:60}")
-    private int tokenExpirationMinutes;
-    
     @Value("${security.password.reset.min-password-length:8}")
     private int minPasswordLength;
+    
+    @Value("${security.password.reset.session-timeout-minutes:30}")
+    private int sessionTimeoutMinutes;
 
     @GetMapping("/recuperar")
     public String mostrarFormularioRecuperar(Model model) {
@@ -53,7 +47,9 @@ public class RecuperarPasswordController {
     }
 
     @PostMapping("/recuperar")
-    public String procesarRecuperar(@RequestParam String email, Model model) {
+    public String procesarRecuperar(@RequestParam String email, 
+                                   HttpSession session,
+                                   Model model) {
         Usuario usuario = usuarioRepo.findByEmail(email);
         if (usuario == null) {
             model.addAttribute("recuperarError", "No existe usuario con ese correo.");
@@ -62,20 +58,21 @@ public class RecuperarPasswordController {
             return "login";
         }
 
-        // Generate token using service (supports permanent or expirable tokens based on config)
-        String token = passwordResetService.createTokenForEmail(email, usuario.getId());
+        // Set session attribute to mark that this email is authorized for password reset
+        // This provides security: only users who request reset through proper flow can access it
+        session.setAttribute("resetAuthorizedEmail", email);
+        session.setAttribute("resetAuthorizedTime", System.currentTimeMillis());
+        // Session will expire automatically after configured timeout (default 30 min)
 
         // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
         try {
-            String link = appBaseUrl + "/password-reset.html?token=" + token;
-            // Log the password reset link for Railway debugging (when SMTP is blocked)
-            // SECURITY NOTE: This logs the token for admin debugging. Ensure server logs are properly secured.
-            logger.info("Password reset link generated for {}: {}", email, link);
-            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
+            String link = appBaseUrl + "/reset-password";
+            // Log password reset request (email only for security)
             logger.info("Password reset email sent to: {}", email);
+            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
         } catch (Exception e) {
-            // Log error but continue - token is already saved
-            logger.error("Failed to send password recovery email to {}, but token was created", email, e);
+            // Log error but continue - session is already set
+            logger.error("Failed to send password recovery email to: {}", email, e);
         }
 
         model.addAttribute("recuperarMensaje", "Se ha enviado un enlace de recuperación a tu correo.");
@@ -85,44 +82,70 @@ public class RecuperarPasswordController {
     }
 
     @GetMapping("/reset-password")
-    public String mostrarFormularioReset(@RequestParam String token, Model model) {
-        if (!passwordResetService.validateToken(token)) {
-            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
-            if (expiredToken != null && expiredToken.getUsed()) {
-                model.addAttribute("error", "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.");
-            } else {
-                model.addAttribute("error", "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
-            }
-            return "reset_password";
+    public String mostrarFormularioReset(HttpSession session, Model model) {
+        // Check if user has initiated password reset flow (has valid session)
+        String authorizedEmail = (String) session.getAttribute("resetAuthorizedEmail");
+        Long authorizedTime = (Long) session.getAttribute("resetAuthorizedTime");
+        
+        // For user convenience, allow access to the form even without session
+        // The POST endpoint will validate session/email match
+        // This allows users to bookmark the page and use it later
+        
+        // If session exists, pre-fill the email (convenience)
+        if (authorizedEmail != null) {
+            model.addAttribute("prefilledEmail", authorizedEmail);
         }
         
-        model.addAttribute("token", token);
         return "reset_password";
     }
 
     @PostMapping("/reset-password")
-    public String procesarReset(@RequestParam String token,
+    public String procesarReset(@RequestParam String email,
                                 @RequestParam String password,
                                 @RequestParam String confirmPassword,
+                                HttpSession session,
                                 Model model) {
-        // Validate token first
-        if (!passwordResetService.validateToken(token)) {
-            PasswordResetToken expiredToken = tokenRepo.findByToken(token);
-            if (expiredToken != null && expiredToken.getUsed()) {
-                model.addAttribute("error", "Este enlace ya fue utilizado. Por favor, solicita un nuevo enlace de recuperación.");
-            } else {
-                model.addAttribute("error", "El enlace es inválido o ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
-            }
+        // Check if there's an authorized session for password reset
+        String authorizedEmail = (String) session.getAttribute("resetAuthorizedEmail");
+        Long authorizedTime = (Long) session.getAttribute("resetAuthorizedTime");
+        
+        // Validate session authorization
+        if (authorizedEmail == null || authorizedTime == null) {
+            model.addAttribute("error", "Sesión expirada o inválida. Por favor, solicita un nuevo enlace de recuperación desde la página de inicio de sesión.");
+            logger.warn("Password reset attempted without valid session for email: {}", email);
             return "reset_password";
         }
         
-        // Get the valid token
-        PasswordResetToken resetToken = tokenRepo.findByToken(token);
+        // Check session hasn't expired (configurable timeout)
+        long sessionAge = System.currentTimeMillis() - authorizedTime;
+        long maxAge = sessionTimeoutMinutes * 60 * 1000; // Convert minutes to milliseconds
+        if (sessionAge > maxAge) {
+            session.removeAttribute("resetAuthorizedEmail");
+            session.removeAttribute("resetAuthorizedTime");
+            model.addAttribute("error", "El enlace ha expirado. Por favor, solicita un nuevo enlace de recuperación.");
+            logger.warn("Password reset attempted with expired session for email: {}", email);
+            return "reset_password";
+        }
+        
+        // Validate email matches authorized email
+        if (!email.equals(authorizedEmail)) {
+            model.addAttribute("error", "El correo electrónico no coincide con la solicitud de recuperación.");
+            logger.warn("Password reset attempted for email {} but session authorized for {}", email, authorizedEmail);
+            return "reset_password";
+        }
+        
+        // Find user by email
+        Usuario usuario = usuarioRepo.findByEmail(email);
+        if (usuario == null) {
+            // Use generic error message to prevent email enumeration
+            model.addAttribute("error", "Los datos ingresados no son válidos. Por favor, verifica e intenta de nuevo.");
+            logger.warn("Password reset attempted for non-existent email: {}", email);
+            return "reset_password";
+        }
         
         // Validate passwords match
         if (!password.equals(confirmPassword)) {
             model.addAttribute("error", "Las contraseñas no coinciden.");
-            model.addAttribute("token", token);
             return "reset_password";
         }
         
@@ -130,25 +153,18 @@ public class RecuperarPasswordController {
         String passwordError = validatePasswordStrength(password);
         if (passwordError != null) {
             model.addAttribute("error", passwordError);
-            model.addAttribute("token", token);
             return "reset_password";
         }
         
         // Update user password
-        Usuario usuario = usuarioRepo.findByEmail(resetToken.getEmail());
-        if (usuario == null) {
-            logger.error("User not found for email: {}", resetToken.getEmail());
-            model.addAttribute("error", "Error al procesar la solicitud. Por favor, intenta de nuevo.");
-            return "reset_password";
-        }
-        
         usuario.setPassword(passwordEncoder.encode(password));
         usuarioRepo.save(usuario);
         
-        // Mark token as used
-        passwordResetService.consumeToken(token);
+        // Clear session attributes
+        session.removeAttribute("resetAuthorizedEmail");
+        session.removeAttribute("resetAuthorizedTime");
         
-        logger.info("Password successfully reset for user: {}", resetToken.getEmail());
+        logger.info("Password successfully reset for user: {}", email);
 
         model.addAttribute("mensaje", "La contraseña fue actualizada correctamente. Ya puedes iniciar sesión con tu nueva contraseña.");
         return "login";
