@@ -81,4 +81,36 @@ public interface VentaRepository extends JpaRepository<Venta, Long> {
     List<Object[]> topVendedoresPorProductoBetween(@Param("from") LocalDateTime from,
                                                    @Param("to") LocalDateTime to,
                                                    @Param("productoId") Long productoId);
+
+    /**
+     * Sales by product with quantity and total amount sold.
+     * Returns: [productoId, productoNombre, cantidadVendida, totalMontoVendido]
+     */
+    @Query("SELECT dv.producto.id, dv.producto.nombre, SUM(dv.cantidad) as cantidadVendida, " +
+            "SUM(dv.cantidad * dv.precioUnitario) as totalMonto " +
+            "FROM DetalleVenta dv JOIN dv.venta v " +
+            "WHERE v.fecha BETWEEN :from AND :to " +
+            "GROUP BY dv.producto.id, dv.producto.nombre " +
+            "ORDER BY SUM(dv.cantidad * dv.precioUnitario) DESC")
+    List<Object[]> salesByProductBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
+     * Sales by user/seller with count and total amount.
+     * Returns: [usuarioId, usuarioNombre, cantidadVentas, totalVendido]
+     */
+    @Query("SELECT v.usuario.id, v.usuario.nombre, COUNT(v) as cantidadVentas, SUM(v.total) as totalVendido " +
+            "FROM Venta v WHERE v.fecha BETWEEN :from AND :to " +
+            "GROUP BY v.usuario.id, v.usuario.nombre " +
+            "ORDER BY SUM(v.total) DESC")
+    List<Object[]> salesByUserBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
+
+    /**
+     * Sales by month for the given period.
+     * Returns: [year-month, totalMonto]
+     */
+    @Query("SELECT FUNCTION('DATE_FORMAT', v.fecha, '%Y-%m') as mes, SUM(v.total) " +
+            "FROM Venta v WHERE v.fecha BETWEEN :from AND :to " +
+            "GROUP BY FUNCTION('DATE_FORMAT', v.fecha, '%Y-%m') " +
+            "ORDER BY FUNCTION('DATE_FORMAT', v.fecha, '%Y-%m')")
+    List<Object[]> salesByMonthBetween(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
 }
