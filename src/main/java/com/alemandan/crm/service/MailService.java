@@ -14,6 +14,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+import jakarta.annotation.PostConstruct;
 import jakarta.mail.MessagingException;
 import jakarta.mail.internet.MimeMessage;
 
@@ -38,6 +39,51 @@ public class MailService {
     
     @Value("${sendgrid.sender.email:noreply@alemandanpos.com}")
     private String senderEmail;
+    
+    @Value("${spring.mail.host:}")
+    private String smtpHost;
+    
+    @Value("${spring.mail.port:0}")
+    private int smtpPort;
+    
+    @Value("${spring.mail.username:}")
+    private String smtpUsername;
+    
+    @Value("${spring.mail.password:}")
+    private String smtpPassword;
+    
+    /**
+     * Validate mail configuration on startup and log warnings if incomplete.
+     * This helps diagnose email issues early rather than failing silently at runtime.
+     */
+    @PostConstruct
+    public void validateMailConfiguration() {
+        boolean sendGridConfigured = StringUtils.hasText(sendGridApiKey);
+        boolean smtpConfigured = StringUtils.hasText(smtpHost) && 
+                                 smtpPort > 0 && 
+                                 StringUtils.hasText(smtpUsername) &&
+                                 StringUtils.hasText(smtpPassword);
+        
+        if (!sendGridConfigured && !smtpConfigured) {
+            logger.warn("=================================================================");
+            logger.warn("WARNING: No email service configured!");
+            logger.warn("Neither SendGrid API nor SMTP settings are properly configured.");
+            logger.warn("Email sending will fail. To fix this:");
+            logger.warn("1. Configure SendGrid: Set SENDGRID_API_KEY and SENDER_EMAIL");
+            logger.warn("2. Or configure SMTP: Set SPRING_MAIL_HOST, SPRING_MAIL_PORT,");
+            logger.warn("   SPRING_MAIL_USERNAME, and SPRING_MAIL_PASSWORD");
+            logger.warn("See docs/DEPLOYMENT.md for Railway setup instructions.");
+            logger.warn("=================================================================");
+        } else if (sendGridConfigured) {
+            logger.info("Email service configured: SendGrid API (primary)");
+            if (smtpConfigured) {
+                logger.info("Email service configured: SMTP (fallback)");
+            }
+        } else if (smtpConfigured) {
+            logger.info("Email service configured: SMTP only");
+            logger.info("Note: Railway may block SMTP ports. Consider using SendGrid API.");
+        }
+    }
 
     /**
      * Send approval email with HTML body support.
