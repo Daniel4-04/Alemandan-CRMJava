@@ -164,8 +164,12 @@ public class ReportService {
                 JFreeChart barChart = ChartFactory.createBarChart("", "Producto", "Cantidad", barDataset, PlotOrientation.VERTICAL, false, true, false);
                 applyCategoryChartStyle(barChart);
                 addCenteredChartHighDpi(document, barChart, 900, 320, 2.0);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError | Exception e) {
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de productos (librerías nativas no disponibles): {}", e.getMessage());
+                // Continue without chart - table data is already added
+            } catch (Throwable e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de productos: {}", e.getMessage(), e);
                 // Continue without chart - table data is already added
             }
         }
@@ -203,8 +207,12 @@ public class ReportService {
                 JFreeChart pieChartGlobal = ChartFactory.createPieChart("", pieDatasetGlobal, true, true, false);
                 applyPieChartStyle(pieChartGlobal);
                 addCenteredChartHighDpi(document, pieChartGlobal, 650, 350, 2.0);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError | Exception e) {
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de vendedores (librerías nativas no disponibles): {}", e.getMessage());
+                // Continue without chart - table data is already added
+            } catch (Throwable e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de vendedores: {}", e.getMessage(), e);
                 // Continue without chart - table data is already added
             }
         }
@@ -256,8 +264,12 @@ public class ReportService {
                 legend.setAlignment(Element.ALIGN_CENTER);
                 legend.setSpacingBefore(8f);
                 document.add(legend);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError | Exception e) {
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de ventas por día (librerías nativas no disponibles): {}", e.getMessage());
+                // Continue without chart
+            } catch (Throwable e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de ventas por día: {}", e.getMessage(), e);
                 // Continue without chart
             }
         }
@@ -378,8 +390,12 @@ public class ReportService {
                 JFreeChart chart = ChartFactory.createBarChart("Ventas por producto", "Producto", "Cantidad", dataset, PlotOrientation.VERTICAL, false, true, false);
                 applyCategoryChartStyle(chart);
                 addCenteredChartHighDpi(document, chart, 700, 300, 2.0);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError | Exception e) {
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de ventas por producto (librerías nativas no disponibles): {}", e.getMessage());
+                // Continue without chart - data is already in table above
+            } catch (Throwable e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de ventas por producto: {}", e.getMessage(), e);
                 // Continue without chart - data is already in table above
             }
         }
