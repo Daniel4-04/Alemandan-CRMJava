@@ -93,6 +93,8 @@ public class ReportController {
 
             logger.info("Generando reporte avanzado Excel: from={} to={} productoId={}", start, end, productoId);
 
+            // Generate Excel in memory BEFORE setting response headers
+            // This prevents corrupted response if generation fails
             byte[] excel = reportService.generarReporteVentasExcel(start, end, productoId);
 
             String fileSuffix = "";
@@ -103,10 +105,12 @@ public class ReportController {
             }
             String filename = "reporte_ventas_" + from + "_" + to + fileSuffix + ".xlsx";
 
+            // Set headers only after successful generation
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
             response.setContentLength(excel.length);
 
+            // Write to response stream
             try (OutputStream os = response.getOutputStream()) {
                 os.write(excel);
                 os.flush();
@@ -115,13 +119,16 @@ public class ReportController {
             logger.info("Reporte avanzado Excel exportado exitosamente: {} bytes", excel.length);
         } catch (Exception e) {
             logger.error("Error al exportar reporte avanzado Excel: {}", e.getMessage(), e);
-            try {
-                // Send error response with generic message (detailed error already logged)
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                        "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
-            } catch (Exception sendErrorException) {
-                // If sending error fails, log it - response may already be committed
-                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            // Only attempt to send error if response not committed
+            if (!response.isCommitted()) {
+                try {
+                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                            "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
+                } catch (Exception sendErrorException) {
+                    logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+                }
+            } else {
+                logger.error("No se pudo enviar respuesta de error: respuesta ya enviada al cliente");
             }
         }
     }
