@@ -351,10 +351,15 @@ public class VentaController {
             
             logger.info("PDF empleado exportado exitosamente: {} bytes", pdf.length);
         } catch (Exception e) {
-            logger.error("Error al exportar PDF empleado", e);
+            logger.error("Error al exportar PDF empleado: {}", e.getMessage(), e);
             try {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al generar el PDF");
-            } catch (Exception ignored) {}
+                // Send error response with generic message (detailed error already logged)
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    "No se pudo generar el PDF. Por favor, intente nuevamente o contacte al administrador.");
+            } catch (Exception sendErrorException) {
+                // If sending error fails, log it - response may already be committed
+                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            }
         }
     }
 
@@ -385,10 +390,15 @@ public class VentaController {
             
             logger.info("Excel empleado exportado exitosamente");
         } catch (Exception e) {
-            logger.error("Error al exportar Excel empleado", e);
+            logger.error("Error al exportar Excel empleado: {}", e.getMessage(), e);
             try {
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al generar el Excel");
-            } catch (Exception ignored) {}
+                // Send error response with generic message (detailed error already logged)
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
+            } catch (Exception sendErrorException) {
+                // If sending error fails, log it - response may already be committed
+                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            }
         }
     }
 }
