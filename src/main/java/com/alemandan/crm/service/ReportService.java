@@ -193,7 +193,12 @@ public class ReportService {
      * 
      * Compatible con entornos headless (Railway) usando fuentes DejaVu.
      * 
-     * @deprecated Use {@link #generarReporteVentasPdf(LocalDateTime, LocalDateTime, Long, boolean)} instead.
+     * @param from Fecha de inicio del periodo
+     * @param to Fecha de fin del periodo
+     * @param productoId ID del producto (opcional, null para todos)
+     * @return byte array con el PDF generado
+     * @throws Exception si hay error en la generación
+     * @deprecated Use {@code generarReporteVentasPdf(LocalDateTime, LocalDateTime, Long, boolean)} instead.
      * This method is kept for backward compatibility and defaults to includeAnalysis=true.
      */
     @Deprecated
