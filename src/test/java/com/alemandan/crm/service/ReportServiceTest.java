@@ -45,6 +45,7 @@ class ReportServiceTest {
 
     /**
      * Test that generarReporteVentasPdf generates a non-null byte array.
+     * Updated to reflect table-based approach (no more chart generation).
      */
     @Test
     void testGenerarReporteVentasPdf_ReturnsNonNullByteArray() throws Exception {
@@ -73,10 +74,13 @@ class ReportServiceTest {
         verify(ventaRepository, atLeast(1)).countVentasBetween(any(), any());
         verify(ventaRepository, times(1)).salesByProductBetween(any(), any());
         verify(ventaRepository, times(1)).salesByUserBetween(any(), any());
+        // For 30-day range (≤ 60 days), ventasPorDiaBetween is called instead of salesByMonthBetween
+        verify(ventaRepository, atLeast(1)).ventasPorDiaBetween(any(), any());
     }
 
     /**
      * Test that PDF contains expected minimum size (indicates content was added).
+     * Updated to reflect table-based approach.
      */
     @Test
     void testGenerarReporteVentasPdf_ContainsExpectedContent() throws Exception {
@@ -88,7 +92,7 @@ class ReportServiceTest {
         when(ventaRepository.countVentasBetween(any(), any())).thenReturn(10L);
         when(ventaRepository.salesByProductBetween(any(), any())).thenReturn(createMockSalesByProduct());
         when(ventaRepository.salesByUserBetween(any(), any())).thenReturn(createMockSalesByUser());
-        when(ventaRepository.salesByMonthBetween(any(), any())).thenReturn(new ArrayList<>());
+        when(ventaRepository.salesByMonthBetween(any(), any())).thenReturn(createMockSalesByMonth());
         when(ventaRepository.ventasPorDiaBetween(any(), any())).thenReturn(createMockSalesByDay());
         when(productoRepository.stockProductos()).thenReturn(new ArrayList<>());
 
@@ -97,7 +101,7 @@ class ReportServiceTest {
 
         // Verify
         assertNotNull(pdfData);
-        // A PDF with all sections should be at least 10KB (conservative estimate)
+        // A PDF with all sections (now with tables instead of charts) should be substantial
         assertTrue(pdfData.length > 10000, 
             "PDF should contain substantial content (actual size: " + pdfData.length + " bytes)");
     }
