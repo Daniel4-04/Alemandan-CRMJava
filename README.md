@@ -448,6 +448,15 @@ If this line is missing, add it to your `application.properties` file before dep
   - ✓ Test with a small date range first to rule out data volume issues
   - ✓ Check for missing fonts or graphics libraries (iText PDF dependencies should be in pom.xml)
 
+- **PDF exports work but charts are missing:**
+  - ℹ This is **expected behavior** on Railway and similar containerized environments
+  - Railway containers lack native graphics libraries (libfreetype, libfontmanager.so) required by JFreeChart
+  - The application has built-in fallback logic: PDFs generate successfully **without charts** when native libraries are unavailable
+  - All tabular data, summaries, and text content remain intact - only visual charts are omitted
+  - This ensures exports always work even in resource-constrained environments
+  - To verify: Check logs for messages like "No se pudo generar gráfico... (librerías nativas no disponibles)"
+  - If full chart support is required, consider deploying to a VM with full graphics library support
+
 - **PDF works but Excel fails:**
   - ✓ Verify Apache POI dependencies are included in pom.xml
   - ✓ Check for OutOfMemoryError in logs (Excel files can be memory-intensive)

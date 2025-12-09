@@ -67,6 +67,12 @@ import java.util.stream.Collectors;
  * - generarReciboVentaPdfEstilo(...) <-- diseño ticket por categorías con header ajustado
  *
  * Nota: mantener ambos métodos (el antiguo nombre, usado por controladores, delega al nuevo estilo).
+ *
+ * RAILWAY COMPATIBILITY:
+ * Chart generation (JFreeChart) requires native libraries (libfreetype, libfontmanager.so).
+ * On Railway/Docker environments without these libraries, chart creation will fail with UnsatisfiedLinkError.
+ * This service includes fallback logic: if chart generation fails, the PDF is generated without charts.
+ * All tabular data remains intact - only visual charts are omitted in fallback mode.
  */
 @Service
 public class ReportService {
