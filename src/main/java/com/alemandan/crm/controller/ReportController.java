@@ -84,52 +84,12 @@ public class ReportController {
             @RequestParam(value = "productoId", required = false) Long productoId,
             HttpServletResponse response) {
         try {
-            LocalDate today = LocalDate.now();
-            if (to == null) to = today;
-            if (from == null) from = today.minusDays(30);
-
-            LocalDateTime start = from.atStartOfDay();
-            LocalDateTime end = to.atTime(23, 59, 59);
-
-            logger.info("Generando reporte avanzado Excel: from={} to={} productoId={}", start, end, productoId);
-
-            // Generate Excel in memory BEFORE setting response headers
-            // This prevents corrupted response if generation fails
-            byte[] excel = reportService.generarReporteVentasExcel(start, end, productoId);
-
-            String fileSuffix = "";
-            if (productoId != null) {
-                Optional<Producto> opt = productoRepository.findById(productoId);
-                String prodName = opt.map(Producto::getNombre).orElse("prod" + productoId);
-                fileSuffix = "_" + sanitizeFilename(prodName);
-            }
-            String filename = "reporte_ventas_" + from + "_" + to + fileSuffix + ".xlsx";
-
-            // Set headers only after successful generation
-            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-            response.setContentLength(excel.length);
-
-            // Write to response stream
-            try (OutputStream os = response.getOutputStream()) {
-                os.write(excel);
-                os.flush();
-            }
-
-            logger.info("Reporte avanzado Excel exportado exitosamente: {} bytes", excel.length);
+            logger.info("Exportación a Excel deshabilitada - petición de reporte avanzado recibida: from={} to={} productoId={}", from, to, productoId);
+            
+            response.sendError(HttpServletResponse.SC_GONE, 
+                "La exportación a Excel ha sido deshabilitada. Por favor, utilice la exportación a PDF.");
         } catch (Exception e) {
-            logger.error("Error al exportar reporte avanzado Excel: {}", e.getMessage(), e);
-            // Only attempt to send error if response not committed
-            if (!response.isCommitted()) {
-                try {
-                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                            "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
-                } catch (Exception sendErrorException) {
-                    logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
-                }
-            } else {
-                logger.error("No se pudo enviar respuesta de error: respuesta ya enviada al cliente");
-            }
+            logger.error("Error al enviar respuesta 410: {}", e.getMessage(), e);
         }
     }
 

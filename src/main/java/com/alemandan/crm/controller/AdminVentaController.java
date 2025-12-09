@@ -8,7 +8,6 @@ import com.alemandan.crm.service.UsuarioService;
 import com.alemandan.crm.service.ProductoService;
 import com.alemandan.crm.service.ReportService;
 import com.alemandan.crm.repository.ProductoRepository;
-import com.alemandan.crm.util.ExcelReportUtilAdmin;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,11 +16,9 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -166,46 +163,13 @@ public class AdminVentaController {
             HttpServletResponse response
     ) {
         try {
-            logger.info("Exportando Excel admin con filtros: fechaInicio={}, fechaFin={}, usuarioId={}, productoId={}, metodoPago={}",
+            logger.info("Exportación a Excel deshabilitada - petición recibida con filtros: fechaInicio={}, fechaFin={}, usuarioId={}, productoId={}, metodoPago={}",
                     fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
             
-            usuarioId   = cleanLong(usuarioId);
-            productoId  = cleanLong(productoId);
-            metodoPago  = cleanString(metodoPago);
-
-            List<Venta> ventas = adminVentaService.filtrarVentas(fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
-            logger.info("Generando Excel para {} ventas", ventas.size());
-
-            // Generate Excel to memory BEFORE setting headers to prevent corrupted response
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ExcelReportUtilAdmin.exportVentasExcel(ventas, baos);
-            byte[] excelBytes = baos.toByteArray();
-
-            // Set headers only after successful generation
-            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setHeader("Content-Disposition", "attachment; filename=ventas_admin.xlsx");
-            response.setContentLength(excelBytes.length);
-
-            // Write to response stream
-            try (OutputStream os = response.getOutputStream()) {
-                os.write(excelBytes);
-                os.flush();
-            }
-            
-            logger.info("Excel admin exportado exitosamente: {} bytes", excelBytes.length);
+            response.sendError(HttpServletResponse.SC_GONE, 
+                "La exportación a Excel ha sido deshabilitada. Por favor, utilice la exportación a PDF.");
         } catch (Exception e) {
-            logger.error("Error al exportar Excel admin: {}", e.getMessage(), e);
-            // Only attempt to send error if response not committed
-            if (!response.isCommitted()) {
-                try {
-                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                        "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
-                } catch (Exception sendErrorException) {
-                    logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
-                }
-            } else {
-                logger.error("No se pudo enviar respuesta de error: respuesta ya enviada al cliente");
-            }
+            logger.error("Error al enviar respuesta 410: {}", e.getMessage(), e);
         }
     }
 
