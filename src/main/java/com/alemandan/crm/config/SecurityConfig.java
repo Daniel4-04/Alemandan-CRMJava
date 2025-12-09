@@ -59,6 +59,8 @@ public class SecurityConfig {
                                 "/registro",
                                 "/recuperar",
                                 "/reset-password",
+                                "/password-reset.html",
+                                "/api/password-reset/**",
                                 "/css/**",
                                 "/js/**",
                                 "/assets/**",
@@ -88,7 +90,7 @@ public class SecurityConfig {
                 )
                 // Ignora CSRF para endpoints AJAX de ventas y exportar PDF
                 .csrf(csrf -> csrf
-                        .ignoringRequestMatchers("/admin/ventas/exportar-grafico-pdf", "/api/ventas/**", "/logout")
+                        .ignoringRequestMatchers("/admin/ventas/exportar-grafico-pdf", "/api/ventas/**", "/api/password-reset/**", "/logout")
                 )
                 .formLogin(form -> form
                         .loginPage("/login")

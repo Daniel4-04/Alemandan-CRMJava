@@ -67,7 +67,7 @@ public class RecuperarPasswordController {
 
         // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
         try {
-            String link = appBaseUrl + "/reset-password?token=" + token;
+            String link = appBaseUrl + "/password-reset.html?token=" + token;
             mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
             logger.info("Password reset email sent to: {}", email);
         } catch (Exception e) {
