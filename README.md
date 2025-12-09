@@ -287,15 +287,34 @@ Railway is a cloud platform that makes it easy to deploy Spring Boot application
 
 4. **Set Environment Variables:**
    - Go to "Variables" tab in your service
-   - Map Railway's MySQL `DATABASE_URL` to Spring properties:
+   - **Database Configuration** - Map Railway's MySQL `DATABASE_URL` to Spring properties:
      - Copy the values from Railway's MySQL plugin environment variables
      - Set `SPRING_DATASOURCE_URL` to the JDBC URL (format: `jdbc:mysql://host:port/database?useSSL=false&serverTimezone=UTC`)
      - Set `SPRING_DATASOURCE_USERNAME` to MySQL user
      - Set `SPRING_DATASOURCE_PASSWORD` to MySQL password
-   - Add other required variables from `.env.template`:
-     - `SPRING_MAIL_HOST`, `SPRING_MAIL_USERNAME`, `SPRING_MAIL_PASSWORD` (for email functionality)
+   - **Email Configuration (REQUIRED for password reset):**
+     - Railway blocks SMTP ports (25, 465, 587), so you MUST use SendGrid API
+     - Sign up for free at [SendGrid](https://sendgrid.com) (100 emails/day free tier)
+     - Create an API key with "Mail Send" permission
+     - Verify your sender email address at SendGrid
+     - Set these environment variables in Railway:
+       - `SENDGRID_API_KEY=SG.your_sendgrid_api_key_here`
+       - `SENDER_EMAIL=your-verified-email@domain.com`
+     - See [RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for detailed SendGrid configuration
+   - **Application Base URL (REQUIRED for password reset emails):**
+     - `APP_BASE_URL=https://your-app-name.up.railway.app`
+     - This is used to generate password reset links in emails
+     - Replace with your actual Railway public URL
+   - **Password Reset Configuration (Optional):**
+     - `PASSWORD_RESET_PERMANENT=true` (default: tokens never expire)
+     - `PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=60` (only used if PERMANENT=false)
+     - `PASSWORD_RESET_MIN_PASSWORD_LENGTH=8` (minimum password length)
+   - **File Upload Configuration:**
+     - `APP_UPLOADS_DIR=/app/uploads` (for temporary file storage)
+     - Note: Files will be lost on redeployment. For persistent storage, configure AWS S3
+   - **Other Optional Variables:**
      - `JWT_SECRET` (if using JWT authentication)
-     - AWS S3 credentials (for persistent file storage)
+     - AWS S3 credentials (for persistent file storage - see `.env.template`)
    - **Important:** Ensure `server.port=${PORT:8080}` is set in `src/main/resources/application.properties`
 
 5. **Deploy:**
@@ -374,11 +393,45 @@ If this line is missing, add it to your `application.properties` file before dep
 
 ### Troubleshooting
 
+#### General Issues
 - **Build fails:** Check Maven logs in Railway dashboard. Ensure Java 17 is available.
 - **App crashes on startup:** Verify database connection and all required environment variables are set
 - **Port binding errors:** Ensure `server.port=${PORT:8080}` is in `application.properties`
 - **Database connection fails:** Double-check JDBC URL format and credentials
 - **File uploads disappear:** Migrate to S3 for persistent storage
+
+#### Password Reset Email Issues
+- **Emails not being sent:**
+  - ✓ Check that `SENDGRID_API_KEY` and `SENDER_EMAIL` are set in Railway environment variables
+  - ✓ Verify your sender email is verified in SendGrid dashboard
+  - ✓ Check Railway logs for email sending errors: `railway logs`
+  - ✓ Do NOT use SMTP configuration on Railway - ports 25, 465, 587 are blocked
+  - ✓ Test SendGrid connectivity using the `/internal/test-mail` endpoint (see docs/RAILWAY_SETUP.md)
+
+- **Password reset links don't work:**
+  - ✓ Verify `APP_BASE_URL` is set to your actual Railway URL (e.g., `https://alemandan-crmjava-production.up.railway.app`)
+  - ✓ Check that the URL in the email matches your Railway public URL
+  - ✓ Ensure the static file `/password-reset.html` is accessible at your domain
+  - ✓ Check browser console for JavaScript errors on the password reset page
+
+#### PDF/Excel Export Issues  
+- **Exports fail with HTTP 500:**
+  - ✓ Check Railway logs for specific error messages: `railway logs | grep -i "export\|pdf\|excel"`
+  - ✓ Verify sufficient memory is allocated to your Railway service (upgrade plan if needed)
+  - ✓ Ensure the database connection is stable (exports query the database)
+  - ✓ Test with a small date range first to rule out data volume issues
+  - ✓ Check for missing fonts or graphics libraries (iText PDF dependencies should be in pom.xml)
+
+- **PDF works but Excel fails:**
+  - ✓ Verify Apache POI dependencies are included in pom.xml
+  - ✓ Check for OutOfMemoryError in logs (Excel files can be memory-intensive)
+  - ✓ Try exporting a smaller dataset first
+
+#### Production Debugging
+- **View real-time logs:** `railway logs --follow` or use Railway Dashboard → Deployments → View Logs
+- **Check environment variables:** Railway Dashboard → Variables tab
+- **Test endpoints:** Use the Railway public URL + endpoint path
+- **Database issues:** Use Railway Dashboard → MySQL tab → Connect to verify database is running
 
 ### Additional Resources
 
