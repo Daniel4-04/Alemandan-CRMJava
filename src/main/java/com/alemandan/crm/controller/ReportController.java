@@ -110,11 +110,9 @@ public class ReportController {
             response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
             response.setContentLength(excel.length);
 
-            // Write to response stream with try-with-resources
-            try (OutputStream os = response.getOutputStream()) {
-                os.write(excel);
-                os.flush();
-            }
+            // Write to response stream (servlet container manages the stream)
+            response.getOutputStream().write(excel);
+            response.getOutputStream().flush();
 
             logger.info("Reporte avanzado Excel exportado exitosamente: {} bytes", excel.length);
         } catch (Exception e) {

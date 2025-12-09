@@ -186,11 +186,9 @@ public class AdminVentaController {
             response.setHeader("Content-Disposition", "attachment; filename=ventas_admin.xlsx");
             response.setContentLength(excelBytes.length);
 
-            // Write to response stream
-            try (OutputStream os = response.getOutputStream()) {
-                os.write(excelBytes);
-                os.flush();
-            }
+            // Write to response stream (servlet container manages the stream)
+            response.getOutputStream().write(excelBytes);
+            response.getOutputStream().flush();
             
             logger.info("Excel admin exportado exitosamente: {} bytes", excelBytes.length);
         } catch (Exception e) {

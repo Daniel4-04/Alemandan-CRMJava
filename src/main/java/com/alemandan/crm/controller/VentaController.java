@@ -393,11 +393,9 @@ public class VentaController {
             response.setHeader("Content-Disposition", "attachment; filename=mis_ventas.xlsx");
             response.setContentLength(excelBytes.length);
 
-            // Write to response stream
-            try (OutputStream os = response.getOutputStream()) {
-                os.write(excelBytes);
-                os.flush();
-            }
+            // Write to response stream (servlet container manages the stream)
+            response.getOutputStream().write(excelBytes);
+            response.getOutputStream().flush();
             
             logger.info("Excel empleado exportado exitosamente: {} bytes", excelBytes.length);
         } catch (Exception e) {
