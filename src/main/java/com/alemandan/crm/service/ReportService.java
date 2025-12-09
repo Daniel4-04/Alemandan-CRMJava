@@ -298,23 +298,28 @@ public class ReportService {
     public byte[] generarReporteVentasExcel(LocalDateTime from, LocalDateTime to, Long productoId) throws Exception {
         logger.info("Generando reporte avanzado Excel: from={}, to={}, productoId={}", from, to, productoId);
 
-        // Recopilar datos (misma lógica que el PDF)
-        BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
-        Long count = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
-        List<Object[]> topProductos = ventaRepository.topProductosBetween(from, to);
-        List<Object[]> topVendedores = ventaRepository.topVendedoresBetween(from, to);
-        List<Object[]> stockList = productoRepository.stockProductos();
-        List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
+        try {
+            // Recopilar datos (misma lógica que el PDF)
+            BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
+            Long count = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
+            List<Object[]> topProductos = ventaRepository.topProductosBetween(from, to);
+            List<Object[]> topVendedores = ventaRepository.topVendedoresBetween(from, to);
+            List<Object[]> stockList = productoRepository.stockProductos();
+            List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
 
-        // Generar Excel usando la utilidad
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ExcelReportUtilAvanzado.generarReporteAvanzadoExcel(
-                from, to, totalVentas, count,
-                topProductos, topVendedores, stockList, ventasPorDia,
-                baos
-        );
-        logger.info("Reporte avanzado Excel generado exitosamente: {} bytes", baos.size());
-        return baos.toByteArray();
+            // Generar Excel usando la utilidad
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ExcelReportUtilAvanzado.generarReporteAvanzadoExcel(
+                    from, to, totalVentas, count,
+                    topProductos, topVendedores, stockList, ventasPorDia,
+                    baos
+            );
+            logger.info("Reporte avanzado Excel generado exitosamente: {} bytes", baos.size());
+            return baos.toByteArray();
+        } catch (Exception e) {
+            logger.error("Error al generar reporte avanzado Excel: {}", e.getMessage(), e);
+            throw e; // Re-throw to allow controller to handle with proper HTTP error response
+        }
     }
 
     /* ------------------ "Mis ventas" export (a partir de LISTA filtrada por la UI) ------------------ */
