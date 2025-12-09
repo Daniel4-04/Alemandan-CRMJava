@@ -167,7 +167,7 @@ public class ReportService {
             } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de productos (librerías nativas no disponibles): {}", e.getMessage());
                 // Continue without chart - table data is already added
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 // Catch any other chart generation errors to prevent export failure
                 logger.error("Error inesperado al generar gráfico de productos: {}", e.getMessage(), e);
                 // Continue without chart - table data is already added
@@ -209,11 +209,11 @@ public class ReportService {
                 addCenteredChartHighDpi(document, pieChartGlobal, 650, 350, 2.0);
             } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de vendedores (librerías nativas no disponibles): {}", e.getMessage());
-                // Continue without chart - table data is already added
-            } catch (Throwable e) {
+                // Chart skipped - table data was already added on previous page
+            } catch (Exception e) {
                 // Catch any other chart generation errors to prevent export failure
                 logger.error("Error inesperado al generar gráfico de vendedores: {}", e.getMessage(), e);
-                // Continue without chart - table data is already added
+                // Chart skipped - table data was already added on previous page
             }
         }
 
@@ -266,11 +266,11 @@ public class ReportService {
                 document.add(legend);
             } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de ventas por día (librerías nativas no disponibles): {}", e.getMessage());
-                // Continue without chart
-            } catch (Throwable e) {
+                // Chart section skipped entirely - no empty page created
+            } catch (Exception e) {
                 // Catch any other chart generation errors to prevent export failure
                 logger.error("Error inesperado al generar gráfico de ventas por día: {}", e.getMessage(), e);
-                // Continue without chart
+                // Chart section skipped entirely - no empty page created
             }
         }
 
@@ -393,7 +393,7 @@ public class ReportService {
             } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
                 logger.warn("No se pudo generar gráfico de ventas por producto (librerías nativas no disponibles): {}", e.getMessage());
                 // Continue without chart - data is already in table above
-            } catch (Throwable e) {
+            } catch (Exception e) {
                 // Catch any other chart generation errors to prevent export failure
                 logger.error("Error inesperado al generar gráfico de ventas por producto: {}", e.getMessage(), e);
                 // Continue without chart - data is already in table above
