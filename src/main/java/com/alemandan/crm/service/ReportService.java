@@ -286,6 +286,9 @@ public class ReportService {
      * Similar al PDF pero sin gráficos (solo datos tabulares).
      * No requiere bibliotecas nativas, funciona en Railway.
      *
+     * NOTA: Este método NO genera gráficos, solo usa Apache POI para tablas.
+     * Es seguro en entornos sin bibliotecas nativas (Railway).
+     *
      * @param from Fecha inicio del periodo
      * @param to Fecha fin del periodo
      * @param productoId Filtro opcional por producto
@@ -295,29 +298,28 @@ public class ReportService {
     public byte[] generarReporteVentasExcel(LocalDateTime from, LocalDateTime to, Long productoId) throws Exception {
         logger.info("Generando reporte avanzado Excel: from={}, to={}, productoId={}", from, to, productoId);
 
-        // Recopilar datos (misma lógica que el PDF)
-        BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
-        Long count = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
-        List<Object[]> topProductos = ventaRepository.topProductosBetween(from, to);
-        List<Object[]> topVendedores = ventaRepository.topVendedoresBetween(from, to);
-        List<Object[]> stockList = productoRepository.stockProductos();
-        List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
-
-        // Generar Excel usando la utilidad
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
         try {
+            // Recopilar datos (misma lógica que el PDF)
+            BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
+            Long count = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
+            List<Object[]> topProductos = ventaRepository.topProductosBetween(from, to);
+            List<Object[]> topVendedores = ventaRepository.topVendedoresBetween(from, to);
+            List<Object[]> stockList = productoRepository.stockProductos();
+            List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
+
+            // Generar Excel usando la utilidad
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
             ExcelReportUtilAvanzado.generarReporteAvanzadoExcel(
                     from, to, totalVentas, count,
                     topProductos, topVendedores, stockList, ventasPorDia,
                     baos
             );
             logger.info("Reporte avanzado Excel generado exitosamente: {} bytes", baos.size());
+            return baos.toByteArray();
         } catch (Exception e) {
             logger.error("Error al generar reporte avanzado Excel: {}", e.getMessage(), e);
             throw e;
         }
-
-        return baos.toByteArray();
     }
 
     /* ------------------ "Mis ventas" export (a partir de LISTA filtrada por la UI) ------------------ */

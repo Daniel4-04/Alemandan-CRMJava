@@ -17,6 +17,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import jakarta.servlet.http.HttpServletResponse;
 
+import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -175,22 +176,35 @@ public class AdminVentaController {
             List<Venta> ventas = adminVentaService.filtrarVentas(fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
             logger.info("Generando Excel para {} ventas", ventas.size());
 
+            // Generate Excel to memory BEFORE setting headers to prevent corrupted response
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ExcelReportUtilAdmin.exportVentasExcel(ventas, baos);
+            byte[] excelBytes = baos.toByteArray();
+
+            // Set headers only after successful generation
             response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
             response.setHeader("Content-Disposition", "attachment; filename=ventas_admin.xlsx");
+            response.setContentLength(excelBytes.length);
 
-            ExcelReportUtilAdmin.exportVentasExcel(ventas, response.getOutputStream());
-            response.getOutputStream().flush();
+            // Write to response stream
+            try (OutputStream os = response.getOutputStream()) {
+                os.write(excelBytes);
+                os.flush();
+            }
             
-            logger.info("Excel admin exportado exitosamente");
+            logger.info("Excel admin exportado exitosamente: {} bytes", excelBytes.length);
         } catch (Exception e) {
             logger.error("Error al exportar Excel admin: {}", e.getMessage(), e);
-            try {
-                // Send error response with generic message (detailed error already logged)
-                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                    "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
-            } catch (Exception sendErrorException) {
-                // If sending error fails, log it - response may already be committed
-                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            // Only attempt to send error if response not committed
+            if (!response.isCommitted()) {
+                try {
+                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                        "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
+                } catch (Exception sendErrorException) {
+                    logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+                }
+            } else {
+                logger.error("No se pudo enviar respuesta de error: respuesta ya enviada al cliente");
             }
         }
     }
