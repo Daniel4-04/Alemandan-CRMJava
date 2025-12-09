@@ -10,7 +10,6 @@ import com.alemandan.crm.service.VentaService;
 import com.alemandan.crm.service.ProductoService;
 import com.alemandan.crm.service.UsuarioService;
 import com.alemandan.crm.service.ReportService;
-import com.alemandan.crm.util.ExcelReportUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,7 +20,6 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import jakarta.servlet.http.HttpServletResponse;
 
-import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -364,7 +362,7 @@ public class VentaController {
         }
     }
 
-    // Exportar historial filtrado a Excel
+    // Exportar historial filtrado a Excel - DESHABILITADO
     @GetMapping("/exportar-excel")
     public void exportarExcel(
             Authentication auth,
@@ -377,42 +375,13 @@ public class VentaController {
             String email = ((User) auth.getPrincipal()).getUsername();
             Usuario usuario = usuarioService.findByEmail(email);
             
-            logger.info("Exportando Excel empleado para usuario ID: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
+            logger.info("Exportación a Excel deshabilitada - petición recibida de usuario ID: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
                     usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
-
-            List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
-            logger.info("Generando Excel para {} ventas", ventas.size());
-
-            // Generate Excel to memory BEFORE setting headers to prevent corrupted response
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ExcelReportUtil.exportVentasExcel(ventas, baos);
-            byte[] excelBytes = baos.toByteArray();
-
-            // Set headers only after successful generation
-            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-            response.setHeader("Content-Disposition", "attachment; filename=mis_ventas.xlsx");
-            response.setContentLength(excelBytes.length);
-
-            // Write to response stream
-            try (OutputStream os = response.getOutputStream()) {
-                os.write(excelBytes);
-                os.flush();
-            }
             
-            logger.info("Excel empleado exportado exitosamente: {} bytes", excelBytes.length);
+            response.sendError(HttpServletResponse.SC_GONE, 
+                "La exportación a Excel ha sido deshabilitada. Por favor, utilice la exportación a PDF.");
         } catch (Exception e) {
-            logger.error("Error al exportar Excel empleado: {}", e.getMessage(), e);
-            // Only attempt to send error if response not committed
-            if (!response.isCommitted()) {
-                try {
-                    response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
-                        "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
-                } catch (Exception sendErrorException) {
-                    logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
-                }
-            } else {
-                logger.error("No se pudo enviar respuesta de error: respuesta ya enviada al cliente");
-            }
+            logger.error("Error al enviar respuesta 410: {}", e.getMessage(), e);
         }
     }
 }

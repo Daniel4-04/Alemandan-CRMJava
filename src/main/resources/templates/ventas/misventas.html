@@ -64,13 +64,6 @@
                 <input type="hidden" name="metodoPago" th:value="${param.metodoPago}" />
                 <button type="submit"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
             </form>
-            <form th:action="@{/ventas/exportar-excel}" method="get" style="display:inline;">
-                <input type="hidden" name="fechaInicio" th:value="${param.fechaInicio}" />
-                <input type="hidden" name="fechaFin" th:value="${param.fechaFin}" />
-                <input type="hidden" name="productoId" th:value="${param.productoId}" />
-                <input type="hidden" name="metodoPago" th:value="${param.metodoPago}" />
-                <button type="submit"><i class="fas fa-file-excel"></i> Exportar Excel</button>
-            </form>
         </div>
 
         <table class="ventas-table">
