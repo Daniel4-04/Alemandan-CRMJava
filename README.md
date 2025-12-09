@@ -151,6 +151,32 @@ spring.mail.password=your_app_password
 - **Clean URLs:** Uses UUIDs in URLs instead of exposing user information
 - **Token Revocation:** Ability to revoke all tokens for a specific email address
 
+### ⚠️ Security Warning: Permanent Tokens
+
+**Important:** By default, password reset tokens are configured as **permanent** (never expire). While this provides convenience, it comes with security trade-offs:
+
+**Risks:**
+- If a reset email is intercepted, the token remains valid indefinitely until used
+- Tokens in email archives or forwarded messages remain exploitable
+- No automatic cleanup of unused tokens
+
+**Recommendations for Production:**
+- Consider setting `PASSWORD_RESET_PERMANENT=false` to enable expiration
+- Set a reasonable expiration time (e.g., `PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=30`)
+- Implement periodic cleanup of old unused tokens
+- Monitor and alert on password reset activity
+- Consider implementing rate limiting on password reset requests
+
+**Recommended Configuration for Production (instead of default):**
+```properties
+# Default is permanent tokens (security.password.reset.permanent=true)
+# For better security in production, override with these settings:
+PASSWORD_RESET_PERMANENT=false
+PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=30  # 30 minutes recommended
+```
+
+The permanent token feature was implemented by specific request for this deployment. For production environments, we strongly recommend enabling token expiration as shown above.
+
 ### User Experience
 
 1. User clicks "¿Olvidaste tu contraseña?" on the login page
@@ -302,9 +328,9 @@ Railway is a cloud platform that makes it easy to deploy Spring Boot application
        - `SENDER_EMAIL=your-verified-email@domain.com`
      - See [RAILWAY_SETUP.md](docs/RAILWAY_SETUP.md) for detailed SendGrid configuration
    - **Application Base URL (REQUIRED for password reset emails):**
-     - `APP_BASE_URL=https://your-app-name.up.railway.app`
+     - `APP_BASE_URL=https://alemandan-crmjava-production.up.railway.app`
+     - **IMPORTANT:** Replace with your actual Railway public URL if you're deploying a different instance
      - This is used to generate password reset links in emails
-     - Replace with your actual Railway public URL
    - **Password Reset Configuration (Optional):**
      - `PASSWORD_RESET_PERMANENT=true` (default: tokens never expire)
      - `PASSWORD_RESET_TOKEN_EXPIRATION_MINUTES=60` (only used if PERMANENT=false)
