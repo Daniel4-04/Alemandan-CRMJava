@@ -164,6 +164,98 @@ class ReportServiceTest {
         assertNotNull(pdfData);
         assertTrue(pdfData.length > 0);
     }
+    
+    /**
+     * Test that basic PDF (without analysis) can be generated.
+     */
+    @Test
+    void testGenerarReporteVentasPdf_WithoutAnalysis() throws Exception {
+        // Setup
+        LocalDateTime from = LocalDateTime.now().minusDays(30);
+        LocalDateTime to = LocalDateTime.now();
+
+        when(ventaRepository.totalVentasBetween(any(), any())).thenReturn(BigDecimal.valueOf(10000.00));
+        when(ventaRepository.countVentasBetween(any(), any())).thenReturn(15L);
+        when(ventaRepository.salesByProductBetween(any(), any())).thenReturn(createMockSalesByProduct());
+        when(ventaRepository.salesByUserBetween(any(), any())).thenReturn(createMockSalesByUser());
+
+        // Execute - generate basic report without analysis
+        byte[] pdfData = reportService.generarReporteVentasPdf(from, to, null, false);
+
+        // Verify
+        assertNotNull(pdfData, "Basic PDF should not be null");
+        assertTrue(pdfData.length > 0, "Basic PDF should not be empty");
+        // Basic PDF should contain substantial content even without charts
+        assertTrue(pdfData.length > 5000, "Basic PDF should contain tables and summary");
+        
+        // Verify that only basic queries were called (no monthly/daily data for charts)
+        verify(ventaRepository, times(1)).totalVentasBetween(any(), any());
+        verify(ventaRepository, times(1)).countVentasBetween(any(), any());
+        verify(ventaRepository, times(1)).salesByProductBetween(any(), any());
+        verify(ventaRepository, times(1)).salesByUserBetween(any(), any());
+        // These should NOT be called for basic report
+        verify(ventaRepository, never()).salesByMonthBetween(any(), any());
+        verify(ventaRepository, never()).ventasPorDiaBetween(any(), any());
+        verify(productoRepository, never()).stockProductos();
+    }
+    
+    /**
+     * Test that full PDF (with analysis) generates larger file with all sections.
+     */
+    @Test
+    void testGenerarReporteVentasPdf_WithAnalysis() throws Exception {
+        // Setup
+        LocalDateTime from = LocalDateTime.now().minusDays(30);
+        LocalDateTime to = LocalDateTime.now();
+
+        when(ventaRepository.totalVentasBetween(any(), any())).thenReturn(BigDecimal.valueOf(10000.00));
+        when(ventaRepository.countVentasBetween(any(), any())).thenReturn(15L);
+        when(ventaRepository.salesByProductBetween(any(), any())).thenReturn(createMockSalesByProduct());
+        when(ventaRepository.salesByUserBetween(any(), any())).thenReturn(createMockSalesByUser());
+        when(ventaRepository.salesByMonthBetween(any(), any())).thenReturn(createMockSalesByMonth());
+        when(ventaRepository.ventasPorDiaBetween(any(), any())).thenReturn(createMockSalesByDay());
+        when(productoRepository.stockProductos()).thenReturn(createMockStockProducts());
+
+        // Execute - generate full report with analysis
+        byte[] pdfData = reportService.generarReporteVentasPdf(from, to, null, true);
+
+        // Verify
+        assertNotNull(pdfData, "Full PDF should not be null");
+        assertTrue(pdfData.length > 0, "Full PDF should not be empty");
+        
+        // Verify all repository methods were called for full report
+        verify(ventaRepository, atLeast(1)).totalVentasBetween(any(), any());
+        verify(ventaRepository, atLeast(1)).countVentasBetween(any(), any());
+        verify(ventaRepository, times(1)).salesByProductBetween(any(), any());
+        verify(ventaRepository, times(1)).salesByUserBetween(any(), any());
+        verify(productoRepository, times(1)).stockProductos();
+    }
+    
+    /**
+     * Test backward compatibility - deprecated method still works.
+     */
+    @Test
+    void testGenerarReporteVentasPdf_BackwardCompatibility() throws Exception {
+        // Setup
+        LocalDateTime from = LocalDateTime.now().minusDays(7);
+        LocalDateTime to = LocalDateTime.now();
+
+        when(ventaRepository.totalVentasBetween(any(), any())).thenReturn(BigDecimal.valueOf(5000.00));
+        when(ventaRepository.countVentasBetween(any(), any())).thenReturn(10L);
+        when(ventaRepository.salesByProductBetween(any(), any())).thenReturn(createMockSalesByProduct());
+        when(ventaRepository.salesByUserBetween(any(), any())).thenReturn(createMockSalesByUser());
+        when(ventaRepository.salesByMonthBetween(any(), any())).thenReturn(new ArrayList<>());
+        when(ventaRepository.ventasPorDiaBetween(any(), any())).thenReturn(createMockSalesByDay());
+        when(productoRepository.stockProductos()).thenReturn(new ArrayList<>());
+
+        // Execute - call old method signature (should default to includeAnalysis=true)
+        @SuppressWarnings("deprecation")
+        byte[] pdfData = reportService.generarReporteVentasPdf(from, to, null);
+
+        // Verify - should generate full report with all sections
+        assertNotNull(pdfData);
+        assertTrue(pdfData.length > 0);
+    }
 
     // Helper methods to create mock data
 

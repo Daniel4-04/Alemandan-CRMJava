@@ -11,6 +11,7 @@ El sistema está construido con **Spring Boot**, **Thymeleaf**, **Bootstrap** y 
 - **Gestión de productos y proveedores:** alta, baja, modificación y consulta.
 - **Registro y control de ventas:** cada empleado puede registrar sus ventas y ver el historial.
 - **Dashboard para administrador y empleados:** estadísticas en tiempo real, resumen de ventas, métricas clave.
+- **Reportes avanzados en PDF:** informes detallados de ventas con análisis, gráficos y métricas de negocio.
 - **Web Service REST:** expone un endpoint `/api/ventas/resumen` que entrega un resumen global de ventas en formato JSON, útil para integraciones externas o reportes.
 
 ---
@@ -248,6 +249,89 @@ For persistent file storage on Railway, consider:
 1. Using AWS S3 or similar cloud storage (recommended)
 2. Using Railway volumes (limited availability)
 3. Accepting that product images will be lost on redeployment
+
+---
+
+## Buyer Information in Sales
+
+The POS system now supports optional buyer information (name and ID) for each sale.
+
+### Features
+
+- **Optional Fields:** Cashier can optionally enter buyer's name and ID (cédula) during sale
+- **Receipt Integration:** Buyer information is displayed on the PDF receipt when provided
+- **Database Storage:** Buyer data is persisted with each sale for future reference
+
+### Database Schema
+
+Added fields to the `venta` table:
+
+```sql
+ALTER TABLE venta 
+  ADD COLUMN comprador_cedula VARCHAR(50) NULL,
+  ADD COLUMN comprador_nombre VARCHAR(255) NULL;
+```
+
+### Usage
+
+1. When creating a sale in the POS interface, cashier can fill in:
+   - **Nombre del comprador** (Buyer's name) - Optional
+   - **Cédula** (ID number) - Optional
+2. Information appears on the generated receipt PDF
+3. Data is stored with the sale for historical records
+
+---
+
+## Advanced Sales Reports (PDF)
+
+The system includes a comprehensive sales reporting feature that generates detailed PDF reports with analytics, charts, and business insights.
+
+### Report Modes
+
+#### Full Report (Default - includeAnalysis=true)
+Includes complete business analytics:
+- **Executive Summary:** Total sales, transaction count, average ticket, growth percentage
+- **Sales Tables:** Top products and sellers with detailed metrics
+- **Charts:** Bar charts (monthly/daily sales) and pie charts (top products distribution)
+- **Textual Analysis:** Auto-generated insights about top products, sellers, and trends
+- **Low Stock Alerts:** Products with inventory ≤ 5 units
+
+#### Basic Report (includeAnalysis=false)
+Simplified report for quick data exports:
+- Summary metrics (total sales, count, average)
+- Sales by product table
+- Sales by user/seller table
+- No charts or advanced analysis (faster generation, smaller file size)
+
+### API Usage
+
+**Endpoint:** `GET /ventas/reporte/pdf`
+
+**Parameters:**
+- `from` (optional): Start date in ISO format (YYYY-MM-DD). Default: 30 days ago
+- `to` (optional): End date in ISO format (YYYY-MM-DD). Default: today
+- `productoId` (optional): Filter by specific product ID
+- `includeAnalysis` (optional): `true` for full report (default), `false` for basic report
+
+**Examples:**
+```bash
+# Full report with all analysis (last 30 days)
+GET /ventas/reporte/pdf
+
+# Basic report without charts (custom date range)
+GET /ventas/reporte/pdf?from=2024-01-01&to=2024-12-31&includeAnalysis=false
+
+# Full report for specific product
+GET /ventas/reporte/pdf?from=2024-01-01&to=2024-03-31&productoId=5
+```
+
+### Headless Environment Compatibility
+
+The PDF generation is fully compatible with Railway and other headless environments:
+- Uses bundled DejaVu Sans fonts for reliable rendering
+- Includes fallback logic for chart generation (if native libraries are missing)
+- All tabular data is preserved even if charts cannot be generated
+- See [docs/PDF_REPORT.md](docs/PDF_REPORT.md) for detailed technical documentation
 
 ---
 

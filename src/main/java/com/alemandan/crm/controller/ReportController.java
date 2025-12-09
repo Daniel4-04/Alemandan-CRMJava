@@ -50,7 +50,8 @@ public class ReportController {
     public ResponseEntity<byte[]> descargarReportePdf(
             @RequestParam(value = "from", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
             @RequestParam(value = "to", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to,
-            @RequestParam(value = "productoId", required = false) Long productoId) throws Exception {
+            @RequestParam(value = "productoId", required = false) Long productoId,
+            @RequestParam(value = "includeAnalysis", required = false, defaultValue = "true") boolean includeAnalysis) throws Exception {
 
         LocalDate today = LocalDate.now();
         if (to == null) to = today;
@@ -59,9 +60,9 @@ public class ReportController {
         LocalDateTime start = from.atStartOfDay();
         LocalDateTime end = to.atTime(23, 59, 59);
 
-        logger.info("Generando reporte avanzado: from={} to={} productoId={}", start, end, productoId);
+        logger.info("Generando reporte avanzado: from={} to={} productoId={} includeAnalysis={}", start, end, productoId, includeAnalysis);
 
-        byte[] pdf = reportService.generarReporteVentasPdf(start, end, productoId);
+        byte[] pdf = reportService.generarReporteVentasPdf(start, end, productoId, includeAnalysis);
 
         String fileSuffix = "";
         if (productoId != null) {

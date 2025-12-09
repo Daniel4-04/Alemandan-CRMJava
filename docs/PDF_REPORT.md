@@ -92,17 +92,46 @@ DejaVu Sans was chosen because:
 ### Endpoint
 
 ```
-GET /ventas/reporte/pdf?from=2024-01-01&to=2024-12-31&productoId=123
+GET /ventas/reporte/pdf?from=2024-01-01&to=2024-12-31&productoId=123&includeAnalysis=true
 ```
 
 **Parameters:**
 - `from` (optional): Start date in ISO format (YYYY-MM-DD). Defaults to 30 days ago.
 - `to` (optional): End date in ISO format (YYYY-MM-DD). Defaults to today.
 - `productoId` (optional): Filter by specific product ID.
+- `includeAnalysis` (optional): Boolean to include/exclude advanced analysis. Defaults to `true`.
+  - `true`: Generates full report with charts, growth metrics, insights, and low stock alerts
+  - `false`: Generates basic report with only summary tables (faster, smaller file)
 
 **Response:**
 - Content-Type: `application/pdf`
 - Disposition: `attachment; filename=reporte_ventas_[dates].pdf`
+
+### Report Modes
+
+#### Full Report (includeAnalysis=true, default)
+The full report includes:
+- Executive summary with growth metrics
+- Sales by product table (top 20)
+- Sales by user/seller table
+- Monthly/daily sales bar chart
+- Top 10 products pie chart
+- Textual analysis with insights
+- Low stock alerts
+
+**Use case**: Comprehensive business analytics, management reports, strategic planning.
+
+**Example**: `/ventas/reporte/pdf?from=2024-01-01&to=2024-12-31` (analysis included by default)
+
+#### Basic Report (includeAnalysis=false)
+The basic report includes:
+- Summary with total sales, transaction count, and average ticket
+- Sales by product table (top 20)
+- Sales by user/seller table
+
+**Use case**: Quick data exports, simpler reports for operational teams, faster generation.
+
+**Example**: `/ventas/reporte/pdf?from=2024-01-01&to=2024-12-31&includeAnalysis=false`
 
 ## Deployment Considerations
 
