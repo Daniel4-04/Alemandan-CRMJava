@@ -2,7 +2,9 @@
 
 ## Overview
 
-The Alemandan CRM/POS system includes an enhanced PDF sales report generation feature that provides comprehensive sales analytics with visual charts and detailed insights.
+The Alemandan CRM/POS system includes an enhanced PDF sales report generation feature that provides comprehensive sales analytics with detailed tables and textual analysis.
+
+**IMPORTANT UPDATE (December 2024)**: Charts have been replaced with tables to eliminate native library dependencies (libfreetype, libfontmanager) that cause issues in containerized environments like Railway and Docker. The new table-based approach provides the same data in a more portable format.
 
 ## Features
 
@@ -26,58 +28,57 @@ The enhanced PDF sales report (`/ventas/reporte/pdf`) includes the following sec
 - Total amount sold
 - All sellers ranked by total sales
 
-### 4. Charts
-
-#### Monthly Sales Chart (Bar Chart)
-- Shows sales trends over time
-- If the date range is ≤ 60 days, displays daily data
-- If the date range is > 60 days, displays monthly aggregated data
+### 4. Sales by Period Table (replaces Monthly Sales Chart)
+- **Daily data**: For date ranges ≤ 60 days, shows daily sales breakdown
+- **Monthly data**: For date ranges > 60 days, shows monthly aggregated sales
+- Includes textual analysis of trends (highest/lowest sales periods)
 - Helps identify seasonal patterns and trends
 
-#### Top 10 Products Pie Chart
-- Visual representation of product sales distribution
-- Shows the top 10 products by revenue
-- Displays participation percentage for each product
+### 5. Top 10 Products Participation Table (replaces Pie Chart)
+- Product name
+- Total amount sold
+- Participation percentage of each product
+- Total row showing sum of top 10 products
+- Visual representation through percentage values
 
-### 5. Textual Analysis
+### 6. Textual Analysis
 Programmatically generated insights including:
 - Top-selling product with quantity and revenue
 - Products with low rotation (bottom 5)
 - Best-performing seller with statistics
 - Growth trend analysis
 - Average ticket insights
+- Period trend analysis (highest/lowest sales days/months)
 
-### 6. Low Stock Alert
+### 7. Low Stock Alert
 - Lists products with stock ≤ 5 units
 - Helps identify restocking needs
 
-## Headless Environment Compatibility (Railway Deployment)
+## Container Environment Compatibility
 
-The PDF generation feature is fully compatible with headless environments like Railway, Docker, and other cloud platforms.
+The PDF generation feature is now fully compatible with containerized environments (Railway, Docker, Kubernetes) **without requiring any native libraries**.
 
-### Technical Implementation
+### What Changed?
 
-1. **Headless Mode**: The application sets `java.awt.headless=true` in the main class (`AlemandanCrmJavaApplication.java`) to prevent native library loading issues.
+**Before**: The system used JFreeChart to generate visual charts (bar charts, pie charts) which required native libraries:
+- libfreetype.so
+- libfontmanager.so
+- AWT/Swing native components
 
-2. **DejaVu Sans Font**: 
-   - Included in `src/main/resources/fonts/DejaVuSans.ttf` and `DejaVuSans-Bold.ttf`
-   - Registered at runtime using `Font.createFont()` and `GraphicsEnvironment.registerFont()`
-   - Provides fallback font support when native font managers are unavailable
+These libraries were not available in most container environments, causing `UnsatisfiedLinkError` exceptions.
 
-3. **Chart Generation Fallback**:
-   - JFreeChart is used for generating charts (bar charts and pie charts)
-   - If native libraries (libfreetype, libfontmanager) are missing, chart generation gracefully fails
-   - All tabular data is preserved in the PDF even if charts cannot be generated
-   - Warning logs are generated instead of errors to maintain export functionality
+**After**: All charts have been replaced with:
+- **Detailed tables** showing the same data in tabular format
+- **Enhanced textual analysis** with insights and metrics
+- **Percentage-based visualizations** (e.g., participation %)
 
-### Why DejaVu Sans?
-
-DejaVu Sans was chosen because:
-- It's an open-source font (free to redistribute)
-- Excellent Unicode coverage for international characters
-- Works reliably in headless environments
-- Widely used in server-side PDF generation
-- Available in Regular and Bold weights
+**Benefits**:
+- ✅ Works in all containerized environments without configuration
+- ✅ No native library dependencies
+- ✅ Smaller PDF file sizes
+- ✅ Faster generation (no image rendering)
+- ✅ Better accessibility (table data is searchable and screen-reader friendly)
+- ✅ Same data, more portable format
 
 ## Usage
 
@@ -100,7 +101,7 @@ GET /ventas/reporte/pdf?from=2024-01-01&to=2024-12-31&productoId=123&includeAnal
 - `to` (optional): End date in ISO format (YYYY-MM-DD). Defaults to today.
 - `productoId` (optional): Filter by specific product ID.
 - `includeAnalysis` (optional): Boolean to include/exclude advanced analysis. Defaults to `true`.
-  - `true`: Generates full report with charts, growth metrics, insights, and low stock alerts
+  - `true`: Generates full report with all tables, growth metrics, insights, and low stock alerts
   - `false`: Generates basic report with only summary tables (faster, smaller file)
 
 **Response:**
@@ -114,9 +115,10 @@ The full report includes:
 - Executive summary with growth metrics
 - Sales by product table (top 20)
 - Sales by user/seller table
-- Monthly/daily sales bar chart
-- Top 10 products pie chart
-- Textual analysis with insights
+- Sales by period table (daily or monthly)
+- Top 10 products participation table with percentages
+- Enhanced textual analysis with insights
+- Period trend analysis
 - Low stock alerts
 
 **Use case**: Comprehensive business analytics, management reports, strategic planning.
@@ -135,19 +137,28 @@ The basic report includes:
 
 ## Deployment Considerations
 
-### Railway/Docker Deployment
+### Railway/Docker/Kubernetes Deployment
 
-The application is ready for Railway deployment without any additional configuration:
+The application is ready for any containerized deployment **without any additional configuration**:
 
-1. **Environment Variables**: No special font-related environment variables are needed.
+1. **No Native Libraries Required**: The PDF generation no longer depends on system fonts or graphics libraries.
 
-2. **Dependencies**: All required fonts are bundled in the application JAR file.
+2. **No Environment Variables Needed**: No special configuration is required for PDF generation.
 
-3. **Fallback Logic**: If chart generation fails due to missing native libraries, the PDF is still generated with all data tables intact.
+3. **Works Out-of-the-Box**: Deploy and use immediately without worrying about missing dependencies.
+
+### Migration from Chart-Based Reports
+
+If you're upgrading from a previous version that used charts:
+
+- **No action required**: The endpoint and parameters remain the same
+- **Data integrity**: All data that was in charts is now in tables
+- **Enhanced analysis**: New textual insights provide additional value
+- **Backward compatibility**: The `includeAnalysis` parameter continues to work as before
 
 ### Local Development
 
-For local development, the application works out-of-the-box with the bundled DejaVu fonts. No additional setup is required.
+For local development, the application works out-of-the-box. No additional setup is required.
 
 ### Testing
 
@@ -156,6 +167,7 @@ Unit tests are included in `ReportServiceTest.java` to verify:
 - PDF contains expected content (minimum size validation)
 - Empty data is handled gracefully
 - Growth calculations work correctly
+- Both full and basic report modes work correctly
 
 Run tests with:
 ```bash
@@ -165,32 +177,30 @@ mvn test -Dtest=ReportServiceTest
 ## Dependencies
 
 The PDF report feature uses:
-- **iText PDF 5.5.13.3**: PDF generation library
-- **JFreeChart 1.5.4**: Chart generation library
+- **iText PDF 5.5.13.3**: PDF generation library (no native dependencies)
 - **Apache POI**: Excel export (separate from PDF)
+
+**Removed dependencies**:
+- ~~JFreeChart~~ (kept for backward compatibility but no longer used in PDF generation)
+- ~~AWT/Swing native libraries~~ (no longer required)
 
 All dependencies are already included in `pom.xml`.
 
 ## Troubleshooting
 
-### Charts Not Appearing in PDF
+### Tables Instead of Charts
 
-**Symptom**: PDF is generated but charts are missing.
+**Observation**: The PDF now contains tables where there used to be charts.
 
-**Cause**: Native libraries for font rendering are not available in the deployment environment.
+**Explanation**: This is the intended behavior. Charts have been replaced with tables to eliminate native library dependencies and ensure compatibility with containerized environments.
 
-**Solution**: This is expected behavior in headless environments. The PDF will still contain all tabular data. Check application logs for warnings like:
-```
-WARN ReportService - No se pudo generar gráfico de ventas mensuales (librerías nativas no disponibles)
-```
+**Benefits**: Tables are more accessible, searchable, and provide the same data in a portable format.
 
 ### Large PDF File Size
 
-**Symptom**: PDF files are larger than expected.
+**Symptom**: PDF files might be smaller than before.
 
-**Cause**: High-DPI chart images are embedded in the PDF for better quality.
-
-**Solution**: This is intentional for better print quality. The charts use 2x scaling (900x380px rendered at 2.0 scale) for crisp visuals.
+**Explanation**: Tables are more compact than embedded high-resolution chart images, resulting in smaller file sizes while maintaining all the data.
 
 ### Growth Percentage Showing as N/A
 
@@ -200,14 +210,29 @@ WARN ReportService - No se pudo generar gráfico de ventas mensuales (librerías
 
 **Solution**: This is normal. The system needs at least two comparable periods to calculate growth.
 
+## Migration Notes
+
+### Changes from Previous Version
+
+1. **Charts Removed**: All JFreeChart-based visualizations have been replaced with tables
+2. **Enhanced Analysis**: New textual analysis sections provide insights that complement the tables
+3. **Participation Percentages**: Product participation table now shows percentage values
+4. **Trend Analysis**: New section analyzes highest/lowest sales periods
+
+### Code Changes
+
+- Methods `createMonthlySalesChart()`, `createTopProductsPieChart()`, `applyCategoryChartStyle()`, `applyPieChartStyle()`, `addCenteredChartHighDpi()`, and `createHighDpiImageFromChart()` are now deprecated
+- New methods: `addSalesByPeriodTable()`, `addTopProductsParticipationTable()`, `addPeriodAnalysis()`
+- The `registerFallbackFont()` method is deprecated (no longer needed)
+
 ## Future Enhancements
 
 Potential improvements for future versions:
-- Configurable chart types (line, area, etc.)
-- Multi-period comparison (quarterly, yearly)
-- Custom color themes for charts
-- Export configuration options (include/exclude sections)
+- Configurable table styling and colors
+- Multi-period comparison (quarterly, yearly) in side-by-side tables
+- Export configuration options (include/exclude specific sections)
 - Scheduled report generation and email delivery
+- Additional textual insights and recommendations
 
 ## Support
 
@@ -218,6 +243,14 @@ For issues or questions about the PDF report feature, please:
 4. Review this documentation for known issues and solutions
 
 ## Version History
+
+- **v2.0 (December 2024)**: **BREAKING CHANGE** - Replaced charts with tables
+  - Removed all JFreeChart dependencies from PDF generation
+  - Added sales by period table (daily/monthly)
+  - Added top products participation table with percentages
+  - Enhanced textual analysis with trend insights
+  - Eliminated native library dependencies for container compatibility
+  - Improved accessibility and data portability
 
 - **v1.0 (December 2024)**: Initial enhanced PDF report implementation
   - Added executive summary with growth metrics
