@@ -166,6 +166,9 @@ public class MailService {
                 + "Si no solicitaste este cambio, ignora este mensaje.\n\n"
                 + "Saludos,\nEquipo AlemandanPOS";
         
+        // Log the password reset link (useful for Railway debugging when SMTP is blocked)
+        logger.info("Sending password reset email to {} with link: {}", to, link);
+        
         // Try SendGrid API first if configured
         if (StringUtils.hasText(sendGridApiKey)) {
             if (enviarConSendGridTexto(to, subject, body)) {
