@@ -68,7 +68,8 @@ public class RecuperarPasswordController {
         // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
         try {
             String link = appBaseUrl + "/password-reset.html?token=" + token;
-            // Log the password reset link for Railway debugging (in case SMTP is blocked)
+            // Log the password reset link for Railway debugging (when SMTP is blocked)
+            // SECURITY NOTE: This logs the token for admin debugging. Ensure server logs are properly secured.
             logger.info("Password reset link generated for {}: {}", email, link);
             mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
             logger.info("Password reset email sent to: {}", email);

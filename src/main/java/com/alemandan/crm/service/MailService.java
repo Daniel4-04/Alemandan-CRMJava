@@ -167,6 +167,7 @@ public class MailService {
                 + "Saludos,\nEquipo AlemandanPOS";
         
         // Log the password reset link (useful for Railway debugging when SMTP is blocked)
+        // SECURITY NOTE: This logs the token for admin debugging. Ensure server logs are properly secured.
         logger.info("Sending password reset email to {} with link: {}", to, link);
         
         // Try SendGrid API first if configured
