@@ -9,6 +9,8 @@ import com.alemandan.crm.service.ProductoService;
 import com.alemandan.crm.service.ReportService;
 import com.alemandan.crm.repository.ProductoRepository;
 import com.alemandan.crm.util.ExcelReportUtilAdmin;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -26,6 +28,8 @@ import java.util.Optional;
 @Controller
 @RequestMapping("/admin/ventas")
 public class AdminVentaController {
+
+    private static final Logger logger = LoggerFactory.getLogger(AdminVentaController.class);
 
     @Autowired
     private AdminVentaService adminVentaService;
@@ -89,48 +93,60 @@ public class AdminVentaController {
             @RequestParam(required = false) Long productoId,
             @RequestParam(required = false) String metodoPago,
             HttpServletResponse response
-    ) throws Exception {
-        usuarioId   = cleanLong(usuarioId);
-        productoId  = cleanLong(productoId);
-        metodoPago  = cleanString(metodoPago);
-
-        // Parsear fechas (espera formato ISO yyyy-MM-dd), con defaults
-        LocalDate today = LocalDate.now();
-        LocalDate fromDate;
-        LocalDate toDate;
+    ) {
         try {
-            fromDate = (fechaInicio == null || fechaInicio.isBlank()) ? today.minusDays(30) : LocalDate.parse(fechaInicio);
-        } catch (Exception ex) {
-            fromDate = today.minusDays(30);
-        }
-        try {
-            toDate = (fechaFin == null || fechaFin.isBlank()) ? today : LocalDate.parse(fechaFin);
-        } catch (Exception ex) {
-            toDate = today;
-        }
+            logger.info("Exportando PDF admin con filtros: fechaInicio={}, fechaFin={}, usuarioId={}, productoId={}, metodoPago={}",
+                    fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
+            
+            usuarioId   = cleanLong(usuarioId);
+            productoId  = cleanLong(productoId);
+            metodoPago  = cleanString(metodoPago);
 
-        LocalDateTime start = fromDate.atStartOfDay();
-        LocalDateTime end = toDate.atTime(23, 59, 59);
+            // Parsear fechas (espera formato ISO yyyy-MM-dd), con defaults
+            LocalDate today = LocalDate.now();
+            LocalDate fromDate;
+            LocalDate toDate;
+            try {
+                fromDate = (fechaInicio == null || fechaInicio.isBlank()) ? today.minusDays(30) : LocalDate.parse(fechaInicio);
+            } catch (Exception ex) {
+                fromDate = today.minusDays(30);
+            }
+            try {
+                toDate = (fechaFin == null || fechaFin.isBlank()) ? today : LocalDate.parse(fechaFin);
+            } catch (Exception ex) {
+                toDate = today;
+            }
 
-        // Generar PDF con ReportService (resumen estilizado)
-        byte[] pdf = reportService.generarResumenVentasPdf(start, end, usuarioId, productoId, metodoPago);
+            LocalDateTime start = fromDate.atStartOfDay();
+            LocalDateTime end = toDate.atTime(23, 59, 59);
 
-        // Construir filename, incluyendo nombre de producto sanitizado si aplica
-        String fileSuffix = "";
-        if (productoId != null) {
-            Optional<Producto> opt = productoRepository.findById(productoId);
-            String prodName = opt.map(Producto::getNombre).orElse("prod" + productoId);
-            fileSuffix = "_" + prodName.replaceAll("[^a-zA-Z0-9\\-_\\.]", "_");
-        }
-        String filename = "resumen_ventas_" + fromDate + "_" + toDate + fileSuffix + ".pdf";
+            // Generar PDF con ReportService (resumen estilizado)
+            byte[] pdf = reportService.generarResumenVentasPdf(start, end, usuarioId, productoId, metodoPago);
 
-        response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-        response.setContentLength(pdf.length);
+            // Construir filename, incluyendo nombre de producto sanitizado si aplica
+            String fileSuffix = "";
+            if (productoId != null) {
+                Optional<Producto> opt = productoRepository.findById(productoId);
+                String prodName = opt.map(Producto::getNombre).orElse("prod" + productoId);
+                fileSuffix = "_" + prodName.replaceAll("[^a-zA-Z0-9\\-_\\.]", "_");
+            }
+            String filename = "resumen_ventas_" + fromDate + "_" + toDate + fileSuffix + ".pdf";
 
-        try (OutputStream os = response.getOutputStream()) {
-            os.write(pdf);
-            os.flush();
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+            response.setContentLength(pdf.length);
+
+            try (OutputStream os = response.getOutputStream()) {
+                os.write(pdf);
+                os.flush();
+            }
+            
+            logger.info("PDF admin exportado exitosamente: {} bytes", pdf.length);
+        } catch (Exception e) {
+            logger.error("Error al exportar PDF admin", e);
+            try {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al generar el PDF");
+            } catch (Exception ignored) {}
         }
     }
 
@@ -142,17 +158,31 @@ public class AdminVentaController {
             @RequestParam(required = false) Long productoId,
             @RequestParam(required = false) String metodoPago,
             HttpServletResponse response
-    ) throws Exception {
-        usuarioId   = cleanLong(usuarioId);
-        productoId  = cleanLong(productoId);
-        metodoPago  = cleanString(metodoPago);
+    ) {
+        try {
+            logger.info("Exportando Excel admin con filtros: fechaInicio={}, fechaFin={}, usuarioId={}, productoId={}, metodoPago={}",
+                    fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
+            
+            usuarioId   = cleanLong(usuarioId);
+            productoId  = cleanLong(productoId);
+            metodoPago  = cleanString(metodoPago);
 
-        List<Venta> ventas = adminVentaService.filtrarVentas(fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
+            List<Venta> ventas = adminVentaService.filtrarVentas(fechaInicio, fechaFin, usuarioId, productoId, metodoPago);
+            logger.info("Generando Excel para {} ventas", ventas.size());
 
-        response.setContentType("application/vnd.ms-excel");
-        response.setHeader("Content-Disposition", "attachment; filename=ventas_admin.xlsx");
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=ventas_admin.xlsx");
 
-        ExcelReportUtilAdmin.exportVentasExcel(ventas, response.getOutputStream());
+            ExcelReportUtilAdmin.exportVentasExcel(ventas, response.getOutputStream());
+            response.getOutputStream().flush();
+            
+            logger.info("Excel admin exportado exitosamente");
+        } catch (Exception e) {
+            logger.error("Error al exportar Excel admin", e);
+            try {
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Error al generar el Excel");
+            } catch (Exception ignored) {}
+        }
     }
 
     /**
