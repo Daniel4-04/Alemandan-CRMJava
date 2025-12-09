@@ -88,195 +88,466 @@ public class ReportService {
 
     /* ------------------ Informe avanzado (completo) ------------------ */
 
+    /**
+     * Genera un informe detallado de ventas en formato PDF que incluye:
+     * 1. Resumen ejecutivo con métricas clave
+     * 2. Tabla de ventas por producto (cantidad y monto)
+     * 3. Tabla de ventas por usuario/vendedor
+     * 4. Gráfico de barras: ventas por mes
+     * 5. Gráfico de torta: top 10 productos
+     * 6. Análisis textual con insights
+     * 
+     * Compatible con entornos headless (Railway) usando fuentes DejaVu.
+     */
     public byte[] generarReporteVentasPdf(LocalDateTime from, LocalDateTime to, Long productoId) throws Exception {
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4.rotate(), 36, 36, 72, 54);
         PdfWriter writer = PdfWriter.getInstance(document, baos);
+
+        // Registrar fuente de fallback para entornos headless
+        registerFallbackFont();
 
         Image logoForHeader = loadLogoIfExists();
         Font pdfNormalFont = getPdfNormalFont();
         Font pdfHeaderFont = getPdfHeaderFont();
 
         try {
-            HeaderFooterEvent event = new HeaderFooterEvent(logoForHeader, pdfHeaderFont, "Informe de Ventas");
+            HeaderFooterEvent event = new HeaderFooterEvent(logoForHeader, pdfHeaderFont, "Informe Detallado de Ventas");
             writer.setPageEvent(event);
         } catch (Exception ignored) {}
 
         document.open();
 
-        // Título y periodo
-        Paragraph title = new Paragraph("Informe de Ventas", pdfHeaderFont);
+        // ============ TÍTULO Y PERIODO ============
+        Paragraph title = new Paragraph("Informe Detallado de Ventas", pdfHeaderFont);
         title.setAlignment(Element.ALIGN_CENTER);
         document.add(title);
 
         Paragraph period = new Paragraph("Periodo: " + (from != null ? from.toLocalDate() : "") + " - " + (to != null ? to.toLocalDate() : ""), pdfNormalFont);
-        period.setSpacingAfter(12);
+        period.setSpacingAfter(16);
         period.setAlignment(Element.ALIGN_CENTER);
         document.add(period);
 
-        // Resumen
-        BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
-        Long count = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
-
-        document.add(new Paragraph("Resumen", pdfHeaderFont));
-        PdfPTable resumenTable = new PdfPTable(2);
-        resumenTable.setWidths(new int[]{3, 2});
-        resumenTable.setWidthPercentage(50);
-        resumenTable.setHorizontalAlignment(Element.ALIGN_CENTER);
-        resumenTable.addCell(createHeaderCell("Ventas totales (monto)", pdfHeaderFont));
-        resumenTable.addCell(createCell(formatSimple(totalVentas), pdfNormalFont));
-        resumenTable.addCell(createHeaderCell("Número de ventas", pdfHeaderFont));
-        resumenTable.addCell(createCell(String.valueOf(count), pdfNormalFont));
-        BigDecimal avg = (count > 0) ? totalVentas.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP) : BigDecimal.ZERO;
-        resumenTable.addCell(createHeaderCell("Venta promedio", pdfHeaderFont));
-        resumenTable.addCell(createCell(formatSimple(avg), pdfNormalFont));
-        resumenTable.setSpacingAfter(12f);
-        resumenTable.setSpacingBefore(6f);
-        document.add(resumenTable);
-
-        // Top productos (tabla + gráfico)
-        document.add(new Paragraph("Productos más vendidos", pdfHeaderFont));
-        List<Object[]> topProductos = ventaRepository.topProductosBetween(from, to);
-
-        PdfPTable prodTable = new PdfPTable(new float[]{6, 2});
-        prodTable.setWidthPercentage(70);
-        prodTable.setHorizontalAlignment(Element.ALIGN_CENTER);
-        prodTable.addCell(createHeaderCell("Producto", pdfHeaderFont));
-        prodTable.addCell(createHeaderCell("Cantidad vendida", pdfHeaderFont));
-        DefaultCategoryDataset barDataset = new DefaultCategoryDataset();
-        if (topProductos != null) {
-            int maxRows = Math.min(topProductos.size(), 10);
-            for (int i = 0; i < maxRows; i++) {
-                Object[] r = topProductos.get(i);
-                String nombre = r[1] == null ? "N/A" : String.valueOf(r[1]);
-                Number cantidad = r[2] == null ? 0 : (Number) r[2];
-                prodTable.addCell(createCell(nombre, pdfNormalFont));
-                prodTable.addCell(createCell(String.valueOf(cantidad.longValue()), pdfNormalFont));
-                barDataset.addValue(cantidad.doubleValue(), "Ventas", nombre);
-            }
+        // ============ 1. RESUMEN EJECUTIVO CON MÉTRICAS CLAVE ============
+        Map<String, Object> metrics = computeMetrics(from, to);
+        document.add(new Paragraph("RESUMEN EJECUTIVO", pdfHeaderFont));
+        PdfPTable executiveSummary = new PdfPTable(2);
+        executiveSummary.setWidths(new int[]{3, 2});
+        executiveSummary.setWidthPercentage(60);
+        executiveSummary.setHorizontalAlignment(Element.ALIGN_CENTER);
+        
+        executiveSummary.addCell(createHeaderCell("Total Ventas (Monto)", pdfHeaderFont));
+        executiveSummary.addCell(createCell(formatCurrency((BigDecimal) metrics.get("totalVentas")), pdfNormalFont));
+        
+        executiveSummary.addCell(createHeaderCell("Número de Ventas", pdfHeaderFont));
+        executiveSummary.addCell(createCell(String.valueOf(metrics.get("cantidadVentas")), pdfNormalFont));
+        
+        executiveSummary.addCell(createHeaderCell("Ticket Promedio", pdfHeaderFont));
+        executiveSummary.addCell(createCell(formatCurrency((BigDecimal) metrics.get("ticketPromedio")), pdfNormalFont));
+        
+        // Crecimiento porcentual (si es posible calcularlo)
+        BigDecimal crecimiento = (BigDecimal) metrics.get("crecimientoPorcentual");
+        if (crecimiento != null) {
+            executiveSummary.addCell(createHeaderCell("Crecimiento vs Periodo Anterior", pdfHeaderFont));
+            String crecimientoStr = formatPercentage(crecimiento);
+            executiveSummary.addCell(createCell(crecimientoStr, pdfNormalFont));
         }
-        prodTable.setSpacingAfter(8f);
-        prodTable.setSpacingBefore(8f);
-        document.add(prodTable);
+        
+        executiveSummary.setSpacingAfter(16f);
+        executiveSummary.setSpacingBefore(8f);
+        document.add(executiveSummary);
 
-        // Chart generation with fallback for Railway (missing native libraries)
-        if (barDataset.getColumnCount() > 0) {
-            try {
-                JFreeChart barChart = ChartFactory.createBarChart("", "Producto", "Cantidad", barDataset, PlotOrientation.VERTICAL, false, true, false);
-                applyCategoryChartStyle(barChart);
-                addCenteredChartHighDpi(document, barChart, 900, 320, 2.0);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
-                logger.warn("No se pudo generar gráfico de productos (librerías nativas no disponibles): {}", e.getMessage());
-                // Continue without chart - table data is already added
-            } catch (Exception e) {
-                // Catch any other chart generation errors to prevent export failure
-                logger.error("Error inesperado al generar gráfico de productos: {}", e.getMessage(), e);
-                // Continue without chart - table data is already added
-            }
-        }
+        // ============ 2. TABLA: VENTAS POR PRODUCTO ============
+        document.add(new Paragraph("VENTAS POR PRODUCTO", pdfHeaderFont));
+        List<Object[]> salesByProduct = ventaRepository.salesByProductBetween(from, to);
+        PdfPTable productTable = buildSalesByProductTable(salesByProduct, pdfHeaderFont, pdfNormalFont);
+        document.add(productTable);
 
-        // Top vendedores global
+        // ============ 3. TABLA: VENTAS POR USUARIO/VENDEDOR ============
         document.add(Chunk.NEWLINE);
-        document.add(new Paragraph("Top vendedores (global)", pdfHeaderFont));
-        List<Object[]> topVendedores = ventaRepository.topVendedoresBetween(from, to);
-        PdfPTable vendTable = new PdfPTable(new float[]{6, 2});
-        vendTable.setWidthPercentage(60);
-        vendTable.setHorizontalAlignment(Element.ALIGN_CENTER);
-        vendTable.addCell(createHeaderCell("Vendedor", pdfHeaderFont));
-        vendTable.addCell(createHeaderCell("Total vendido", pdfHeaderFont));
-        DefaultPieDataset pieDatasetGlobal = new DefaultPieDataset();
-        if (topVendedores != null) {
-            for (Object[] r : topVendedores) {
-                String nombre = r[1] == null ? "N/A" : String.valueOf(r[1]);
-                Number total = r[2] == null ? 0 : (Number) r[2];
-                vendTable.addCell(createCell(nombre, pdfNormalFont));
-                vendTable.addCell(createCell(String.valueOf(total.doubleValue()), pdfNormalFont));
-                pieDatasetGlobal.setValue(nombre, total.doubleValue());
-            }
-        }
-        vendTable.setSpacingAfter(12f);
-        document.add(vendTable);
+        document.add(new Paragraph("VENTAS POR VENDEDOR", pdfHeaderFont));
+        List<Object[]> salesByUser = ventaRepository.salesByUserBetween(from, to);
+        PdfPTable userTable = buildSalesByUserTable(salesByUser, pdfHeaderFont, pdfNormalFont);
+        document.add(userTable);
 
-        // Pie chart generation with fallback for Railway (missing native libraries)
-        if (pieDatasetGlobal.getItemCount() > 0) {
-            try {
-                document.newPage();
-                Paragraph repartoTitle = new Paragraph("Repartición por vendedor", pdfHeaderFont);
-                repartoTitle.setAlignment(Element.ALIGN_CENTER);
-                repartoTitle.setSpacingAfter(8f);
-                document.add(repartoTitle);
-                JFreeChart pieChartGlobal = ChartFactory.createPieChart("", pieDatasetGlobal, true, true, false);
-                applyPieChartStyle(pieChartGlobal);
-                addCenteredChartHighDpi(document, pieChartGlobal, 650, 350, 2.0);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
-                logger.warn("No se pudo generar gráfico de vendedores (librerías nativas no disponibles): {}", e.getMessage());
-                // Chart skipped - table data was already added on previous page
-            } catch (Exception e) {
-                // Catch any other chart generation errors to prevent export failure
-                logger.error("Error inesperado al generar gráfico de vendedores: {}", e.getMessage(), e);
-                // Chart skipped - table data was already added on previous page
-            }
+        // ============ 4. GRÁFICO: VENTAS POR MES (o por día si rango corto) ============
+        document.newPage();
+        Paragraph chartTitle1 = new Paragraph("VENTAS POR PERIODO", pdfHeaderFont);
+        chartTitle1.setAlignment(Element.ALIGN_CENTER);
+        chartTitle1.setSpacingAfter(12f);
+        document.add(chartTitle1);
+        
+        try {
+            JFreeChart monthlySalesChart = createMonthlySalesChart(from, to);
+            addCenteredChartHighDpi(document, monthlySalesChart, 900, 380, 2.0);
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+            logger.warn("No se pudo generar gráfico de ventas mensuales (librerías nativas no disponibles): {}", e.getMessage());
+            Paragraph warning = new Paragraph("Gráfico no disponible en modo headless", pdfNormalFont);
+            warning.setAlignment(Element.ALIGN_CENTER);
+            document.add(warning);
+        } catch (Exception e) {
+            logger.error("Error al generar gráfico de ventas mensuales: {}", e.getMessage(), e);
         }
 
-        // Stock bajo
+        // ============ 5. GRÁFICO: TOP 10 PRODUCTOS (PIE CHART) ============
+        document.newPage();
+        Paragraph chartTitle2 = new Paragraph("PARTICIPACIÓN TOP 10 PRODUCTOS", pdfHeaderFont);
+        chartTitle2.setAlignment(Element.ALIGN_CENTER);
+        chartTitle2.setSpacingAfter(12f);
+        document.add(chartTitle2);
+        
+        try {
+            JFreeChart topProductsPieChart = createTopProductsPieChart(salesByProduct);
+            addCenteredChartHighDpi(document, topProductsPieChart, 700, 400, 2.0);
+        } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+            logger.warn("No se pudo generar gráfico de top productos (librerías nativas no disponibles): {}", e.getMessage());
+            Paragraph warning = new Paragraph("Gráfico no disponible en modo headless", pdfNormalFont);
+            warning.setAlignment(Element.ALIGN_CENTER);
+            document.add(warning);
+        } catch (Exception e) {
+            logger.error("Error al generar gráfico de top productos: {}", e.getMessage(), e);
+        }
+
+        // ============ 6. ANÁLISIS TEXTUAL CON INSIGHTS ============
+        document.newPage();
+        document.add(new Paragraph("ANÁLISIS E INSIGHTS", pdfHeaderFont));
+        String analysis = generateTextualAnalysis(metrics, salesByProduct, salesByUser);
+        Paragraph analysisP = new Paragraph(analysis, pdfNormalFont);
+        analysisP.setSpacingBefore(8f);
+        analysisP.setAlignment(Element.ALIGN_JUSTIFIED);
+        document.add(analysisP);
+
+        // ============ SECCIÓN ADICIONAL: Stock bajo (mantener compatibilidad) ============
         document.add(Chunk.NEWLINE);
-        document.add(new Paragraph("Productos con stock bajo (<=5)", pdfHeaderFont));
+        document.add(new Paragraph("PRODUCTOS CON STOCK BAJO (≤5)", pdfHeaderFont));
         List<Object[]> stockList = productoRepository.stockProductos();
         PdfPTable stockTable = new PdfPTable(new float[]{6, 2});
         stockTable.setWidthPercentage(60);
         stockTable.setHorizontalAlignment(Element.ALIGN_CENTER);
         stockTable.addCell(createHeaderCell("Producto", pdfHeaderFont));
         stockTable.addCell(createHeaderCell("Stock", pdfHeaderFont));
+        boolean hasLowStock = false;
         if (stockList != null) {
             for (Object[] r : stockList) {
                 Number stock = r[2] == null ? 0 : (Number) r[2];
                 if (stock.intValue() <= 5) {
                     stockTable.addCell(createCell(String.valueOf(r[1]), pdfNormalFont));
                     stockTable.addCell(createCell(String.valueOf(stock.intValue()), pdfNormalFont));
+                    hasLowStock = true;
                 }
             }
         }
-        stockTable.setSpacingAfter(12f);
-        stockTable.setSpacingBefore(6f);
-        document.add(stockTable);
-
-        // Ventas por día
-        List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
-        if (ventasPorDia != null && !ventasPorDia.isEmpty()) {
-            try {
-                document.newPage();
-                Paragraph ventasDiaTitle = new Paragraph("Ventas por día", pdfHeaderFont);
-                ventasDiaTitle.setAlignment(Element.ALIGN_CENTER);
-                ventasDiaTitle.setSpacingAfter(8f);
-                document.add(ventasDiaTitle);
-
-                DefaultCategoryDataset seriesDataset = new DefaultCategoryDataset();
-                for (Object[] r : ventasPorDia) {
-                    Object diaObj = r[0];
-                    Number total = r[1] == null ? 0 : (Number) r[1];
-                    String label = diaObj == null ? "N/A" : diaObj.toString();
-                    seriesDataset.addValue(total.doubleValue(), "Ventas", label);
-                }
-                JFreeChart lineChart = ChartFactory.createLineChart("", "Día", "Total", seriesDataset);
-                applyCategoryChartStyle(lineChart);
-                addCenteredChartHighDpi(document, lineChart, 900, 320, 2.0);
-
-                Paragraph legend = new Paragraph("Ventas", pdfNormalFont);
-                legend.setAlignment(Element.ALIGN_CENTER);
-                legend.setSpacingBefore(8f);
-                document.add(legend);
-            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
-                logger.warn("No se pudo generar gráfico de ventas por día (librerías nativas no disponibles): {}", e.getMessage());
-                // Chart section skipped entirely - no empty page created
-            } catch (Exception e) {
-                // Catch any other chart generation errors to prevent export failure
-                logger.error("Error inesperado al generar gráfico de ventas por día: {}", e.getMessage(), e);
-                // Chart section skipped entirely - no empty page created
-            }
+        if (hasLowStock) {
+            stockTable.setSpacingAfter(12f);
+            stockTable.setSpacingBefore(6f);
+            document.add(stockTable);
+        } else {
+            Paragraph noLowStock = new Paragraph("No hay productos con stock bajo en este momento.", pdfNormalFont);
+            noLowStock.setSpacingBefore(8f);
+            document.add(noLowStock);
         }
 
         document.close();
         return baos.toByteArray();
+    }
+
+    /* ------------------ Helper Methods for Enhanced PDF Report ------------------ */
+
+    /**
+     * Registra fuente de fallback (DejaVu Sans) para entornos headless sin fuentes nativas.
+     * Esto evita errores de UnsatisfiedLinkError al generar gráficos en Railway/Docker.
+     */
+    private void registerFallbackFont() {
+        try {
+            InputStream fontStream = Thread.currentThread().getContextClassLoader()
+                    .getResourceAsStream("fonts/DejaVuSans.ttf");
+            if (fontStream != null) {
+                java.awt.Font dejaVuFont = java.awt.Font.createFont(java.awt.Font.TRUETYPE_FONT, fontStream);
+                java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().registerFont(dejaVuFont);
+                logger.debug("Fuente DejaVu Sans registrada exitosamente para modo headless");
+            } else {
+                logger.warn("No se encontró fuente DejaVu Sans en resources/fonts/");
+            }
+        } catch (Exception e) {
+            logger.warn("No se pudo registrar fuente DejaVu Sans (modo headless): {}", e.getMessage());
+        }
+    }
+
+    /**
+     * Calcula métricas clave del periodo de ventas.
+     * Retorna un mapa con: totalVentas, cantidadVentas, ticketPromedio, crecimientoPorcentual
+     */
+    private Map<String, Object> computeMetrics(LocalDateTime from, LocalDateTime to) {
+        Map<String, Object> metrics = new HashMap<>();
+        
+        // Métricas del periodo actual
+        BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
+        Long cantidadVentas = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
+        BigDecimal ticketPromedio = (cantidadVentas > 0) 
+            ? totalVentas.divide(BigDecimal.valueOf(cantidadVentas), 2, RoundingMode.HALF_UP) 
+            : BigDecimal.ZERO;
+        
+        metrics.put("totalVentas", totalVentas);
+        metrics.put("cantidadVentas", cantidadVentas);
+        metrics.put("ticketPromedio", ticketPromedio);
+        
+        // Calcular crecimiento comparando con periodo anterior de igual duración
+        try {
+            long daysDiff = java.time.Duration.between(from, to).toDays();
+            LocalDateTime prevFrom = from.minusDays(daysDiff);
+            LocalDateTime prevTo = from.minusSeconds(1);
+            
+            BigDecimal totalPrevio = safeBig(ventaRepository.totalVentasBetween(prevFrom, prevTo));
+            BigDecimal crecimiento = null;
+            
+            if (totalPrevio.compareTo(BigDecimal.ZERO) > 0) {
+                crecimiento = totalVentas.subtract(totalPrevio)
+                    .multiply(BigDecimal.valueOf(100))
+                    .divide(totalPrevio, 2, RoundingMode.HALF_UP);
+            } else if (totalVentas.compareTo(BigDecimal.ZERO) > 0) {
+                crecimiento = BigDecimal.valueOf(100); // 100% growth from zero
+            }
+            
+            metrics.put("crecimientoPorcentual", crecimiento);
+        } catch (Exception e) {
+            logger.warn("No se pudo calcular crecimiento porcentual: {}", e.getMessage());
+            metrics.put("crecimientoPorcentual", null);
+        }
+        
+        return metrics;
+    }
+
+    /**
+     * Construye tabla de ventas por producto con cantidad y monto total.
+     * salesByProduct contiene: [productoId, productoNombre, cantidadVendida, totalMonto]
+     */
+    private PdfPTable buildSalesByProductTable(List<Object[]> salesByProduct, Font headerFont, Font normalFont) {
+        PdfPTable table = new PdfPTable(new float[]{6, 2, 3});
+        table.setWidthPercentage(80);
+        table.setHorizontalAlignment(Element.ALIGN_CENTER);
+        
+        table.addCell(createHeaderCell("Producto", headerFont));
+        table.addCell(createHeaderCell("Cantidad", headerFont));
+        table.addCell(createHeaderCell("Total Vendido", headerFont));
+        
+        if (salesByProduct != null && !salesByProduct.isEmpty()) {
+            int maxRows = Math.min(salesByProduct.size(), 20); // Top 20 productos
+            for (int i = 0; i < maxRows; i++) {
+                Object[] row = salesByProduct.get(i);
+                String nombre = row[1] == null ? "N/A" : String.valueOf(row[1]);
+                Number cantidad = row[2] == null ? 0 : (Number) row[2];
+                Number monto = row[3] == null ? 0 : (Number) row[3];
+                
+                table.addCell(createCell(nombre, normalFont));
+                table.addCell(createCell(String.valueOf(cantidad.longValue()), normalFont));
+                table.addCell(createCell(formatCurrency(numberToBigDecimal(monto)), normalFont));
+            }
+        } else {
+            PdfPCell emptyCell = new PdfPCell(new Phrase("No hay datos disponibles", normalFont));
+            emptyCell.setColspan(3);
+            emptyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(emptyCell);
+        }
+        
+        table.setSpacingAfter(16f);
+        table.setSpacingBefore(8f);
+        return table;
+    }
+
+    /**
+     * Construye tabla de ventas por usuario/vendedor con cantidad de ventas y total.
+     * salesByUser contiene: [usuarioId, usuarioNombre, cantidadVentas, totalVendido]
+     */
+    private PdfPTable buildSalesByUserTable(List<Object[]> salesByUser, Font headerFont, Font normalFont) {
+        PdfPTable table = new PdfPTable(new float[]{6, 2, 3});
+        table.setWidthPercentage(75);
+        table.setHorizontalAlignment(Element.ALIGN_CENTER);
+        
+        table.addCell(createHeaderCell("Vendedor", headerFont));
+        table.addCell(createHeaderCell("Nº Ventas", headerFont));
+        table.addCell(createHeaderCell("Total Vendido", headerFont));
+        
+        if (salesByUser != null && !salesByUser.isEmpty()) {
+            for (Object[] row : salesByUser) {
+                String nombre = row[1] == null ? "N/A" : String.valueOf(row[1]);
+                Number cantidad = row[2] == null ? 0 : (Number) row[2];
+                Number total = row[3] == null ? 0 : (Number) row[3];
+                
+                table.addCell(createCell(nombre, normalFont));
+                table.addCell(createCell(String.valueOf(cantidad.longValue()), normalFont));
+                table.addCell(createCell(formatCurrency(numberToBigDecimal(total)), normalFont));
+            }
+        } else {
+            PdfPCell emptyCell = new PdfPCell(new Phrase("No hay datos disponibles", normalFont));
+            emptyCell.setColspan(3);
+            emptyCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            table.addCell(emptyCell);
+        }
+        
+        table.setSpacingAfter(16f);
+        table.setSpacingBefore(8f);
+        return table;
+    }
+
+    /**
+     * Crea gráfico de barras de ventas por mes (o por día si el rango es corto).
+     * Si el rango es menor a 60 días, usa datos diarios; caso contrario, mensuales.
+     */
+    private JFreeChart createMonthlySalesChart(LocalDateTime from, LocalDateTime to) {
+        long daysDiff = java.time.Duration.between(from, to).toDays();
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        
+        if (daysDiff <= 60) {
+            // Usar datos diarios para rangos cortos
+            List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
+            if (ventasPorDia != null) {
+                for (Object[] row : ventasPorDia) {
+                    Object fecha = row[0];
+                    Number total = row[1] == null ? 0 : (Number) row[1];
+                    String label = fecha == null ? "N/A" : fecha.toString();
+                    dataset.addValue(total.doubleValue(), "Ventas", label);
+                }
+            }
+        } else {
+            // Usar datos mensuales para rangos largos
+            List<Object[]> ventasPorMes = ventaRepository.salesByMonthBetween(from, to);
+            if (ventasPorMes != null) {
+                for (Object[] row : ventasPorMes) {
+                    String mes = row[0] == null ? "N/A" : String.valueOf(row[0]);
+                    Number total = row[1] == null ? 0 : (Number) row[1];
+                    dataset.addValue(total.doubleValue(), "Ventas", mes);
+                }
+            }
+        }
+        
+        String xAxisLabel = daysDiff <= 60 ? "Fecha" : "Mes";
+        JFreeChart chart = ChartFactory.createBarChart(
+            "", xAxisLabel, "Total Ventas", dataset, 
+            PlotOrientation.VERTICAL, false, true, false
+        );
+        applyCategoryChartStyle(chart);
+        return chart;
+    }
+
+    /**
+     * Crea gráfico de torta con top 10 productos por participación en ventas.
+     * salesByProduct contiene: [productoId, productoNombre, cantidadVendida, totalMonto]
+     */
+    private JFreeChart createTopProductsPieChart(List<Object[]> salesByProduct) {
+        DefaultPieDataset dataset = new DefaultPieDataset();
+        
+        if (salesByProduct != null && !salesByProduct.isEmpty()) {
+            int maxItems = Math.min(salesByProduct.size(), 10);
+            for (int i = 0; i < maxItems; i++) {
+                Object[] row = salesByProduct.get(i);
+                String nombre = row[1] == null ? "N/A" : String.valueOf(row[1]);
+                Number monto = row[3] == null ? 0 : (Number) row[3];
+                dataset.setValue(nombre, monto.doubleValue());
+            }
+        }
+        
+        JFreeChart chart = ChartFactory.createPieChart("", dataset, true, true, false);
+        applyPieChartStyle(chart);
+        return chart;
+    }
+
+    /**
+     * Genera análisis textual con insights basados en los datos de ventas.
+     */
+    private String generateTextualAnalysis(Map<String, Object> metrics, 
+                                          List<Object[]> salesByProduct, 
+                                          List<Object[]> salesByUser) {
+        StringBuilder analysis = new StringBuilder();
+        
+        // Resumen general
+        BigDecimal totalVentas = (BigDecimal) metrics.get("totalVentas");
+        Long cantidadVentas = (Long) metrics.get("cantidadVentas");
+        BigDecimal ticketPromedio = (BigDecimal) metrics.get("ticketPromedio");
+        BigDecimal crecimiento = (BigDecimal) metrics.get("crecimientoPorcentual");
+        
+        analysis.append("RESUMEN GENERAL\n\n");
+        analysis.append(String.format("Durante el periodo analizado se registraron %d ventas por un total de %s, ",
+            cantidadVentas, formatCurrency(totalVentas)));
+        analysis.append(String.format("con un ticket promedio de %s. ", formatCurrency(ticketPromedio)));
+        
+        if (crecimiento != null) {
+            if (crecimiento.compareTo(BigDecimal.ZERO) > 0) {
+                analysis.append(String.format("Las ventas crecieron un %s respecto al periodo anterior. ", 
+                    formatPercentage(crecimiento)));
+            } else if (crecimiento.compareTo(BigDecimal.ZERO) < 0) {
+                analysis.append(String.format("Las ventas disminuyeron un %s respecto al periodo anterior. ", 
+                    formatPercentage(crecimiento.abs())));
+            } else {
+                analysis.append("Las ventas se mantuvieron estables respecto al periodo anterior. ");
+            }
+        }
+        
+        analysis.append("\n\n");
+        
+        // Análisis de productos
+        if (salesByProduct != null && !salesByProduct.isEmpty()) {
+            analysis.append("PRODUCTOS\n\n");
+            Object[] topProduct = salesByProduct.get(0);
+            String topProductName = topProduct[1] == null ? "N/A" : String.valueOf(topProduct[1]);
+            Number topProductQty = topProduct[2] == null ? 0 : (Number) topProduct[2];
+            Number topProductAmount = topProduct[3] == null ? 0 : (Number) topProduct[3];
+            
+            analysis.append(String.format("El producto más vendido fue '%s' con %d unidades vendidas, ",
+                topProductName, topProductQty.longValue()));
+            analysis.append(String.format("generando ingresos de %s. ", 
+                formatCurrency(numberToBigDecimal(topProductAmount))));
+            
+            // Productos con baja rotación (bottom 5)
+            if (salesByProduct.size() > 5) {
+                analysis.append("\n\nProductos con menor rotación: ");
+                int startIdx = Math.max(0, salesByProduct.size() - 5);
+                for (int i = startIdx; i < salesByProduct.size(); i++) {
+                    Object[] row = salesByProduct.get(i);
+                    String nombre = row[1] == null ? "N/A" : String.valueOf(row[1]);
+                    Number qty = row[2] == null ? 0 : (Number) row[2];
+                    analysis.append(String.format("%s (%d unidades)", nombre, qty.longValue()));
+                    if (i < salesByProduct.size() - 1) analysis.append(", ");
+                    else analysis.append(".");
+                }
+            }
+        }
+        
+        analysis.append("\n\n");
+        
+        // Análisis de vendedores
+        if (salesByUser != null && !salesByUser.isEmpty()) {
+            analysis.append("VENDEDORES\n\n");
+            Object[] topSeller = salesByUser.get(0);
+            String topSellerName = topSeller[1] == null ? "N/A" : String.valueOf(topSeller[1]);
+            Number topSellerSales = topSeller[2] == null ? 0 : (Number) topSeller[2];
+            Number topSellerAmount = topSeller[3] == null ? 0 : (Number) topSeller[3];
+            
+            analysis.append(String.format("El vendedor con mejor desempeño fue %s con %d ventas, ",
+                topSellerName, topSellerSales.longValue()));
+            analysis.append(String.format("totalizando %s en ventas.", 
+                formatCurrency(numberToBigDecimal(topSellerAmount))));
+        }
+        
+        return analysis.toString();
+    }
+
+    /**
+     * Formatea un BigDecimal como moneda (con símbolo $).
+     */
+    private String formatCurrency(BigDecimal value) {
+        if (value == null) value = BigDecimal.ZERO;
+        NumberFormat nf = NumberFormat.getNumberInstance(new Locale("es", "ES"));
+        nf.setMinimumFractionDigits(2);
+        nf.setMaximumFractionDigits(2);
+        return nf.format(value) + " $";
+    }
+
+    /**
+     * Formatea un BigDecimal como porcentaje.
+     */
+    private String formatPercentage(BigDecimal value) {
+        if (value == null) return "0%";
+        return value.setScale(1, RoundingMode.HALF_UP).toString() + "%";
     }
 
     /* ------------------ Informe avanzado Excel (streaming) ------------------ */
