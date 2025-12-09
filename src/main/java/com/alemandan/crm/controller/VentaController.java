@@ -11,6 +11,8 @@ import com.alemandan.crm.service.ProductoService;
 import com.alemandan.crm.service.UsuarioService;
 import com.alemandan.crm.service.ReportService;
 import com.alemandan.crm.util.ExcelReportUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.User;
@@ -41,6 +43,8 @@ import java.util.Optional;
 @Controller
 @RequestMapping("/ventas")
 public class VentaController {
+
+    private static final Logger logger = LoggerFactory.getLogger(VentaController.class);
 
     @Autowired
     private VentaService ventaService;
@@ -301,44 +305,61 @@ public class VentaController {
             @RequestParam(required = false) String fechaFin,
             @RequestParam(required = false) Long productoId,
             @RequestParam(required = false) String metodoPago,
-            HttpServletResponse response) throws Exception {
-
-        String email = ((User) auth.getPrincipal()).getUsername();
-        Usuario usuario = usuarioService.findByEmail(email);
-
-        // Obtener exactamente la misma lista que se muestra en la UI
-        List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
-
-        // Parsear fechas con defaults (ISO yyyy-MM-dd esperadas en los inputs)
-        LocalDate today = LocalDate.now();
-        LocalDate fromDate;
-        LocalDate toDate;
+            HttpServletResponse response) {
         try {
-            fromDate = (fechaInicio == null || fechaInicio.isBlank()) ? today.minusDays(30) : LocalDate.parse(fechaInicio);
-        } catch (Exception ex) {
-            fromDate = today.minusDays(30);
-        }
-        try {
-            toDate = (fechaFin == null || fechaFin.isBlank()) ? today : LocalDate.parse(fechaFin);
-        } catch (Exception ex) {
-            toDate = today;
-        }
-        LocalDateTime start = fromDate.atStartOfDay();
-        LocalDateTime end = toDate.atTime(23, 59, 59);
+            String email = ((User) auth.getPrincipal()).getUsername();
+            Usuario usuario = usuarioService.findByEmail(email);
+            
+            logger.info("Exportando PDF empleado para usuario ID: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
+                    usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
 
-        // Llamar al ReportService con la LISTA de ventas para generar el PDF que coincida con la UI
-        byte[] pdf = reportService.generarMisVentasPdfFromList(ventas, start, end, usuario.getNombre());
+            // Obtener exactamente la misma lista que se muestra en la UI
+            List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
+            logger.info("Generando PDF para {} ventas", ventas.size());
 
-        String safeName = usuario.getNombre() == null ? "mis_ventas" : usuario.getNombre().replaceAll("[^a-zA-Z0-9\\-_\\.]", "_");
-        String filename = "mis_ventas_" + safeName + "_" + fromDate + "_" + toDate + ".pdf";
+            // Parsear fechas con defaults (ISO yyyy-MM-dd esperadas en los inputs)
+            LocalDate today = LocalDate.now();
+            LocalDate fromDate;
+            LocalDate toDate;
+            try {
+                fromDate = (fechaInicio == null || fechaInicio.isBlank()) ? today.minusDays(30) : LocalDate.parse(fechaInicio);
+            } catch (Exception ex) {
+                fromDate = today.minusDays(30);
+            }
+            try {
+                toDate = (fechaFin == null || fechaFin.isBlank()) ? today : LocalDate.parse(fechaFin);
+            } catch (Exception ex) {
+                toDate = today;
+            }
+            LocalDateTime start = fromDate.atStartOfDay();
+            LocalDateTime end = toDate.atTime(23, 59, 59);
 
-        response.setContentType("application/pdf");
-        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
-        response.setContentLength(pdf.length);
+            // Llamar al ReportService con la LISTA de ventas para generar el PDF que coincida con la UI
+            byte[] pdf = reportService.generarMisVentasPdfFromList(ventas, start, end, usuario.getNombre());
 
-        try (OutputStream os = response.getOutputStream()) {
-            os.write(pdf);
-            os.flush();
+            String safeName = usuario.getNombre() == null ? "mis_ventas" : usuario.getNombre().replaceAll("[^a-zA-Z0-9\\-_\\.]", "_");
+            String filename = "mis_ventas_" + safeName + "_" + fromDate + "_" + toDate + ".pdf";
+
+            response.setContentType("application/pdf");
+            response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+            response.setContentLength(pdf.length);
+
+            try (OutputStream os = response.getOutputStream()) {
+                os.write(pdf);
+                os.flush();
+            }
+            
+            logger.info("PDF empleado exportado exitosamente: {} bytes", pdf.length);
+        } catch (Exception e) {
+            logger.error("Error al exportar PDF empleado: {}", e.getMessage(), e);
+            try {
+                // Send error response with generic message (detailed error already logged)
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    "No se pudo generar el PDF. Por favor, intente nuevamente o contacte al administrador.");
+            } catch (Exception sendErrorException) {
+                // If sending error fails, log it - response may already be committed
+                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            }
         }
     }
 
@@ -350,16 +371,34 @@ public class VentaController {
             @RequestParam(required = false) String fechaFin,
             @RequestParam(required = false) Long productoId,
             @RequestParam(required = false) String metodoPago,
-            HttpServletResponse response) throws Exception {
+            HttpServletResponse response) {
+        try {
+            String email = ((User) auth.getPrincipal()).getUsername();
+            Usuario usuario = usuarioService.findByEmail(email);
+            
+            logger.info("Exportando Excel empleado para usuario ID: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
+                    usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
 
-        String email = ((User) auth.getPrincipal()).getUsername();
-        Usuario usuario = usuarioService.findByEmail(email);
+            List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
+            logger.info("Generando Excel para {} ventas", ventas.size());
 
-        List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
+            response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+            response.setHeader("Content-Disposition", "attachment; filename=mis_ventas.xlsx");
 
-        response.setContentType("application/vnd.ms-excel");
-        response.setHeader("Content-Disposition", "attachment; filename=mis_ventas.xlsx");
-
-        ExcelReportUtil.exportVentasExcel(ventas, response.getOutputStream());
+            ExcelReportUtil.exportVentasExcel(ventas, response.getOutputStream());
+            response.getOutputStream().flush();
+            
+            logger.info("Excel empleado exportado exitosamente");
+        } catch (Exception e) {
+            logger.error("Error al exportar Excel empleado: {}", e.getMessage(), e);
+            try {
+                // Send error response with generic message (detailed error already logged)
+                response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, 
+                    "No se pudo generar el archivo Excel. Por favor, intente nuevamente o contacte al administrador.");
+            } catch (Exception sendErrorException) {
+                // If sending error fails, log it - response may already be committed
+                logger.error("No se pudo enviar respuesta de error al cliente", sendErrorException);
+            }
+        }
     }
 }
