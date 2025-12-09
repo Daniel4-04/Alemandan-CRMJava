@@ -49,6 +49,9 @@ public class MailService {
     @Value("${spring.mail.username:}")
     private String smtpUsername;
     
+    @Value("${spring.mail.password:}")
+    private String smtpPassword;
+    
     /**
      * Validate mail configuration on startup and log warnings if incomplete.
      * This helps diagnose email issues early rather than failing silently at runtime.
@@ -58,7 +61,8 @@ public class MailService {
         boolean sendGridConfigured = StringUtils.hasText(sendGridApiKey);
         boolean smtpConfigured = StringUtils.hasText(smtpHost) && 
                                  smtpPort > 0 && 
-                                 StringUtils.hasText(smtpUsername);
+                                 StringUtils.hasText(smtpUsername) &&
+                                 StringUtils.hasText(smtpPassword);
         
         if (!sendGridConfigured && !smtpConfigured) {
             logger.warn("=================================================================");
