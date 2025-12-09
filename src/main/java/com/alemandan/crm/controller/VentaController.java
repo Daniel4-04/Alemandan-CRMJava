@@ -310,8 +310,8 @@ public class VentaController {
             String email = ((User) auth.getPrincipal()).getUsername();
             Usuario usuario = usuarioService.findByEmail(email);
             
-            logger.info("Exportando PDF empleado para usuario: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
-                    usuario.getEmail(), fechaInicio, fechaFin, productoId, metodoPago);
+            logger.info("Exportando PDF empleado para usuario ID: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
+                    usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
 
             // Obtener exactamente la misma lista que se muestra en la UI
             List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
@@ -376,8 +376,8 @@ public class VentaController {
             String email = ((User) auth.getPrincipal()).getUsername();
             Usuario usuario = usuarioService.findByEmail(email);
             
-            logger.info("Exportando Excel empleado para usuario: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
-                    usuario.getEmail(), fechaInicio, fechaFin, productoId, metodoPago);
+            logger.info("Exportando Excel empleado para usuario ID: {}, filtros: fechaInicio={}, fechaFin={}, productoId={}, metodoPago={}",
+                    usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
 
             List<Venta> ventas = ventaService.filtrarVentas(usuario.getId(), fechaInicio, fechaFin, productoId, metodoPago);
             logger.info("Generando Excel para {} ventas", ventas.size());
