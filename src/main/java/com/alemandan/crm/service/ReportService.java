@@ -6,6 +6,8 @@ import com.alemandan.crm.model.DetalleVenta;
 import com.alemandan.crm.repository.ProductoRepository;
 import com.alemandan.crm.repository.VentaRepository;
 import com.alemandan.crm.service.pdf.HeaderFooterEvent;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -65,9 +67,17 @@ import java.util.stream.Collectors;
  * - generarReciboVentaPdfEstilo(...) <-- diseño ticket por categorías con header ajustado
  *
  * Nota: mantener ambos métodos (el antiguo nombre, usado por controladores, delega al nuevo estilo).
+ *
+ * RAILWAY COMPATIBILITY:
+ * Chart generation (JFreeChart) requires native libraries (libfreetype, libfontmanager.so).
+ * On Railway/Docker environments without these libraries, chart creation will fail with UnsatisfiedLinkError.
+ * This service includes fallback logic: if chart generation fails, the PDF is generated without charts.
+ * All tabular data remains intact - only visual charts are omitted in fallback mode.
  */
 @Service
 public class ReportService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReportService.class);
 
     @Autowired
     private VentaRepository ventaRepository;
@@ -148,10 +158,20 @@ public class ReportService {
         prodTable.setSpacingBefore(8f);
         document.add(prodTable);
 
+        // Chart generation with fallback for Railway (missing native libraries)
         if (barDataset.getColumnCount() > 0) {
-            JFreeChart barChart = ChartFactory.createBarChart("", "Producto", "Cantidad", barDataset, PlotOrientation.VERTICAL, false, true, false);
-            applyCategoryChartStyle(barChart);
-            addCenteredChartHighDpi(document, barChart, 900, 320, 2.0);
+            try {
+                JFreeChart barChart = ChartFactory.createBarChart("", "Producto", "Cantidad", barDataset, PlotOrientation.VERTICAL, false, true, false);
+                applyCategoryChartStyle(barChart);
+                addCenteredChartHighDpi(document, barChart, 900, 320, 2.0);
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+                logger.warn("No se pudo generar gráfico de productos (librerías nativas no disponibles): {}", e.getMessage());
+                // Continue without chart - table data is already added
+            } catch (Exception e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de productos: {}", e.getMessage(), e);
+                // Continue without chart - table data is already added
+            }
         }
 
         // Top vendedores global
@@ -176,15 +196,25 @@ public class ReportService {
         vendTable.setSpacingAfter(12f);
         document.add(vendTable);
 
+        // Pie chart generation with fallback for Railway (missing native libraries)
         if (pieDatasetGlobal.getItemCount() > 0) {
-            document.newPage();
-            Paragraph repartoTitle = new Paragraph("Repartición por vendedor", pdfHeaderFont);
-            repartoTitle.setAlignment(Element.ALIGN_CENTER);
-            repartoTitle.setSpacingAfter(8f);
-            document.add(repartoTitle);
-            JFreeChart pieChartGlobal = ChartFactory.createPieChart("", pieDatasetGlobal, true, true, false);
-            applyPieChartStyle(pieChartGlobal);
-            addCenteredChartHighDpi(document, pieChartGlobal, 650, 350, 2.0);
+            try {
+                document.newPage();
+                Paragraph repartoTitle = new Paragraph("Repartición por vendedor", pdfHeaderFont);
+                repartoTitle.setAlignment(Element.ALIGN_CENTER);
+                repartoTitle.setSpacingAfter(8f);
+                document.add(repartoTitle);
+                JFreeChart pieChartGlobal = ChartFactory.createPieChart("", pieDatasetGlobal, true, true, false);
+                applyPieChartStyle(pieChartGlobal);
+                addCenteredChartHighDpi(document, pieChartGlobal, 650, 350, 2.0);
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+                logger.warn("No se pudo generar gráfico de vendedores (librerías nativas no disponibles): {}", e.getMessage());
+                // Chart skipped - table data was already added on previous page
+            } catch (Exception e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de vendedores: {}", e.getMessage(), e);
+                // Chart skipped - table data was already added on previous page
+            }
         }
 
         // Stock bajo
@@ -212,27 +242,36 @@ public class ReportService {
         // Ventas por día
         List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
         if (ventasPorDia != null && !ventasPorDia.isEmpty()) {
-            document.newPage();
-            Paragraph ventasDiaTitle = new Paragraph("Ventas por día", pdfHeaderFont);
-            ventasDiaTitle.setAlignment(Element.ALIGN_CENTER);
-            ventasDiaTitle.setSpacingAfter(8f);
-            document.add(ventasDiaTitle);
+            try {
+                document.newPage();
+                Paragraph ventasDiaTitle = new Paragraph("Ventas por día", pdfHeaderFont);
+                ventasDiaTitle.setAlignment(Element.ALIGN_CENTER);
+                ventasDiaTitle.setSpacingAfter(8f);
+                document.add(ventasDiaTitle);
 
-            DefaultCategoryDataset seriesDataset = new DefaultCategoryDataset();
-            for (Object[] r : ventasPorDia) {
-                Object diaObj = r[0];
-                Number total = r[1] == null ? 0 : (Number) r[1];
-                String label = diaObj == null ? "N/A" : diaObj.toString();
-                seriesDataset.addValue(total.doubleValue(), "Ventas", label);
+                DefaultCategoryDataset seriesDataset = new DefaultCategoryDataset();
+                for (Object[] r : ventasPorDia) {
+                    Object diaObj = r[0];
+                    Number total = r[1] == null ? 0 : (Number) r[1];
+                    String label = diaObj == null ? "N/A" : diaObj.toString();
+                    seriesDataset.addValue(total.doubleValue(), "Ventas", label);
+                }
+                JFreeChart lineChart = ChartFactory.createLineChart("", "Día", "Total", seriesDataset);
+                applyCategoryChartStyle(lineChart);
+                addCenteredChartHighDpi(document, lineChart, 900, 320, 2.0);
+
+                Paragraph legend = new Paragraph("Ventas", pdfNormalFont);
+                legend.setAlignment(Element.ALIGN_CENTER);
+                legend.setSpacingBefore(8f);
+                document.add(legend);
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+                logger.warn("No se pudo generar gráfico de ventas por día (librerías nativas no disponibles): {}", e.getMessage());
+                // Chart section skipped entirely - no empty page created
+            } catch (Exception e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de ventas por día: {}", e.getMessage(), e);
+                // Chart section skipped entirely - no empty page created
             }
-            JFreeChart lineChart = ChartFactory.createLineChart("", "Día", "Total", seriesDataset);
-            applyCategoryChartStyle(lineChart);
-            addCenteredChartHighDpi(document, lineChart, 900, 320, 2.0);
-
-            Paragraph legend = new Paragraph("Ventas", pdfNormalFont);
-            legend.setAlignment(Element.ALIGN_CENTER);
-            legend.setSpacingBefore(8f);
-            document.add(legend);
         }
 
         document.close();
@@ -332,7 +371,7 @@ public class ReportService {
         suma.setSpacingBefore(8f);
         document.add(suma);
 
-        // Gráfico de ventas por producto (opcional)
+        // Gráfico de ventas por producto (opcional) - with fallback for Railway
         Map<String, Long> ventasPorProducto = new LinkedHashMap<>();
         if (ventas != null) {
             for (Venta v : ventas) {
@@ -345,11 +384,20 @@ public class ReportService {
             }
         }
         if (!ventasPorProducto.isEmpty()) {
-            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-            ventasPorProducto.forEach((nombre, qty) -> dataset.addValue(qty.longValue(), "Cantidad", nombre));
-            JFreeChart chart = ChartFactory.createBarChart("Ventas por producto", "Producto", "Cantidad", dataset, PlotOrientation.VERTICAL, false, true, false);
-            applyCategoryChartStyle(chart);
-            addCenteredChartHighDpi(document, chart, 700, 300, 2.0);
+            try {
+                DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+                ventasPorProducto.forEach((nombre, qty) -> dataset.addValue(qty.longValue(), "Cantidad", nombre));
+                JFreeChart chart = ChartFactory.createBarChart("Ventas por producto", "Producto", "Cantidad", dataset, PlotOrientation.VERTICAL, false, true, false);
+                applyCategoryChartStyle(chart);
+                addCenteredChartHighDpi(document, chart, 700, 300, 2.0);
+            } catch (UnsatisfiedLinkError | NoClassDefFoundError e) {
+                logger.warn("No se pudo generar gráfico de ventas por producto (librerías nativas no disponibles): {}", e.getMessage());
+                // Continue without chart - data is already in table above
+            } catch (Exception e) {
+                // Catch any other chart generation errors to prevent export failure
+                logger.error("Error inesperado al generar gráfico de ventas por producto: {}", e.getMessage(), e);
+                // Continue without chart - data is already in table above
+            }
         }
 
         document.close();
