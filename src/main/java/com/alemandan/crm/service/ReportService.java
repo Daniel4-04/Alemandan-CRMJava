@@ -87,6 +87,100 @@ public class ReportService {
     private ProductoRepository productoRepository;
 
     /* ------------------ Informe avanzado (completo) ------------------ */
+    
+    /**
+     * Genera un reporte básico de ventas en formato PDF sin análisis avanzado.
+     * Incluye solo tablas de datos sin gráficos ni insights.
+     * 
+     * @param from Fecha de inicio
+     * @param to Fecha de fin
+     * @param productoId Filtro opcional por producto
+     * @return byte array con el PDF básico
+     * @throws Exception si hay error en la generación
+     */
+    private byte[] generarReporteVentasBasicoPdf(LocalDateTime from, LocalDateTime to, Long productoId) throws Exception {
+        ByteArrayOutputStream baos = new ByteArrayOutputStream();
+        Document document = new Document(PageSize.A4.rotate(), 36, 36, 72, 54);
+        PdfWriter writer = PdfWriter.getInstance(document, baos);
+
+        Image logoForHeader = loadLogoIfExists();
+        Font pdfNormalFont = getPdfNormalFont();
+        Font pdfHeaderFont = getPdfHeaderFont();
+
+        try {
+            HeaderFooterEvent event = new HeaderFooterEvent(logoForHeader, pdfHeaderFont, "Informe de Ventas");
+            writer.setPageEvent(event);
+        } catch (Exception ignored) {}
+
+        document.open();
+
+        // ============ TÍTULO Y PERIODO ============
+        Paragraph title = new Paragraph("Informe de Ventas", pdfHeaderFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        document.add(title);
+
+        Paragraph period = new Paragraph("Periodo: " + (from != null ? from.toLocalDate() : "") + " - " + (to != null ? to.toLocalDate() : ""), pdfNormalFont);
+        period.setSpacingAfter(16);
+        period.setAlignment(Element.ALIGN_CENTER);
+        document.add(period);
+
+        // ============ RESUMEN BÁSICO ============
+        BigDecimal totalVentas = safeBig(ventaRepository.totalVentasBetween(from, to));
+        Long cantidadVentas = Optional.ofNullable(ventaRepository.countVentasBetween(from, to)).orElse(0L);
+        BigDecimal ticketPromedio = (cantidadVentas > 0) 
+            ? totalVentas.divide(BigDecimal.valueOf(cantidadVentas), 2, RoundingMode.HALF_UP) 
+            : BigDecimal.ZERO;
+
+        document.add(new Paragraph("RESUMEN", pdfHeaderFont));
+        PdfPTable summary = new PdfPTable(2);
+        summary.setWidths(new int[]{3, 2});
+        summary.setWidthPercentage(60);
+        summary.setHorizontalAlignment(Element.ALIGN_CENTER);
+        
+        summary.addCell(createHeaderCell("Total Ventas (Monto)", pdfHeaderFont));
+        summary.addCell(createCell(formatCurrency(totalVentas), pdfNormalFont));
+        
+        summary.addCell(createHeaderCell("Número de Ventas", pdfHeaderFont));
+        summary.addCell(createCell(String.valueOf(cantidadVentas), pdfNormalFont));
+        
+        summary.addCell(createHeaderCell("Ticket Promedio", pdfHeaderFont));
+        summary.addCell(createCell(formatCurrency(ticketPromedio), pdfNormalFont));
+        
+        summary.setSpacingAfter(16f);
+        summary.setSpacingBefore(8f);
+        document.add(summary);
+
+        // ============ TABLA: VENTAS POR PRODUCTO ============
+        document.add(new Paragraph("VENTAS POR PRODUCTO", pdfHeaderFont));
+        List<Object[]> salesByProduct = ventaRepository.salesByProductBetween(from, to);
+        
+        if (salesByProduct != null && !salesByProduct.isEmpty()) {
+            PdfPTable productTable = buildSalesByProductTable(salesByProduct, pdfHeaderFont, pdfNormalFont);
+            document.add(productTable);
+        } else {
+            Paragraph noData = new Paragraph("No hay ventas en el rango seleccionado.", pdfNormalFont);
+            noData.setSpacingBefore(8f);
+            noData.setSpacingAfter(16f);
+            document.add(noData);
+        }
+
+        // ============ TABLA: VENTAS POR USUARIO/VENDEDOR ============
+        document.add(Chunk.NEWLINE);
+        document.add(new Paragraph("VENTAS POR VENDEDOR", pdfHeaderFont));
+        List<Object[]> salesByUser = ventaRepository.salesByUserBetween(from, to);
+        
+        if (salesByUser != null && !salesByUser.isEmpty()) {
+            PdfPTable userTable = buildSalesByUserTable(salesByUser, pdfHeaderFont, pdfNormalFont);
+            document.add(userTable);
+        } else {
+            Paragraph noData = new Paragraph("No hay ventas por vendedor en el rango seleccionado.", pdfNormalFont);
+            noData.setSpacingBefore(8f);
+            document.add(noData);
+        }
+
+        document.close();
+        return baos.toByteArray();
+    }
 
     /**
      * Genera un informe detallado de ventas en formato PDF que incluye:
@@ -98,8 +192,38 @@ public class ReportService {
      * 6. Análisis textual con insights
      * 
      * Compatible con entornos headless (Railway) usando fuentes DejaVu.
+     * 
+     * @param from Fecha de inicio del periodo
+     * @param to Fecha de fin del periodo
+     * @param productoId ID del producto (opcional, null para todos)
+     * @return byte array con el PDF generado
+     * @throws Exception si hay error en la generación
+     * @deprecated Use {@code generarReporteVentasPdf(LocalDateTime, LocalDateTime, Long, boolean)} instead.
+     * This method is kept for backward compatibility and defaults to includeAnalysis=true.
      */
+    @Deprecated
     public byte[] generarReporteVentasPdf(LocalDateTime from, LocalDateTime to, Long productoId) throws Exception {
+        return generarReporteVentasPdf(from, to, productoId, true);
+    }
+    
+    /**
+     * Genera un informe de ventas en formato PDF.
+     * 
+     * @param from Fecha de inicio del periodo
+     * @param to Fecha de fin del periodo
+     * @param productoId ID del producto (opcional, null para todos)
+     * @param includeAnalysis Si true, incluye análisis completo (gráficos, métricas, insights).
+     *                        Si false, genera un reporte básico solo con tablas de datos.
+     * @return byte array con el PDF generado
+     * @throws Exception si hay error en la generación
+     */
+    public byte[] generarReporteVentasPdf(LocalDateTime from, LocalDateTime to, Long productoId, boolean includeAnalysis) throws Exception {
+        if (!includeAnalysis) {
+            // Generate basic report without analysis
+            return generarReporteVentasBasicoPdf(from, to, productoId);
+        }
+        
+        // Generate full report with analysis (existing implementation)
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         Document document = new Document(PageSize.A4.rotate(), 36, 36, 72, 54);
         PdfWriter writer = PdfWriter.getInstance(document, baos);
