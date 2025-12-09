@@ -5,6 +5,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -103,7 +104,7 @@ public class ExcelReportUtilAvanzado {
 
             BigDecimal avg = BigDecimal.ZERO;
             if (count != null && count > 0 && totalVentas != null) {
-                avg = totalVentas.divide(BigDecimal.valueOf(count), 2, BigDecimal.ROUND_HALF_UP);
+                avg = totalVentas.divide(BigDecimal.valueOf(count), 2, RoundingMode.HALF_UP);
             }
             Row avgRow = resumenSheet.createRow(rowIdx++);
             avgRow.createCell(0).setCellValue("Venta promedio");

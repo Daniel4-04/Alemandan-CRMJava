@@ -7,6 +7,7 @@ import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import java.io.OutputStream;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -77,7 +78,7 @@ public class ExcelReportUtil {
                         String prodName = d.getProducto() == null ? "N/A" : d.getProducto().getNombre();
                         BigDecimal price = d.getPrecioUnitario() == null ? BigDecimal.ZERO : d.getPrecioUnitario();
                         Integer qty = d.getCantidad() == null ? 0 : d.getCantidad();
-                        sb.append(prodName).append(" (").append(qty).append(" x ").append(price.setScale(2, BigDecimal.ROUND_HALF_UP).toString()).append(")").append("; ");
+                        sb.append(prodName).append(" (").append(qty).append(" x ").append(price.setScale(2, RoundingMode.HALF_UP).toString()).append(")").append("; ");
                     }
                 }
                 Cell cProd = r.createCell(4);
