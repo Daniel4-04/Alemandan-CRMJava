@@ -642,33 +642,40 @@ public class ReportService {
             List<Object[]> ventasPorDia = ventaRepository.ventasPorDiaBetween(from, to);
             if (ventasPorDia != null && ventasPorDia.size() > 1) {
                 // Encontrar día con mayores y menores ventas
-                Object[] maxDay = ventasPorDia.get(0);
-                Object[] minDay = ventasPorDia.get(0);
-                BigDecimal maxAmount = BigDecimal.ZERO;
-                BigDecimal minAmount = new BigDecimal("999999999");
+                Object[] maxDay = null;
+                Object[] minDay = null;
+                BigDecimal maxAmount = null;
+                BigDecimal minAmount = null;
                 
                 for (Object[] row : ventasPorDia) {
+                    if (row[1] == null) continue; // Skip null values
+                    
                     BigDecimal amount = numberToBigDecimal((Number) row[1]);
-                    if (amount.compareTo(maxAmount) > 0) {
+                    
+                    if (maxAmount == null || amount.compareTo(maxAmount) > 0) {
                         maxAmount = amount;
                         maxDay = row;
                     }
-                    if (amount.compareTo(minAmount) < 0) {
+                    if (minAmount == null || amount.compareTo(minAmount) < 0) {
                         minAmount = amount;
                         minDay = row;
                     }
                 }
                 
-                text.append("El día con mayores ventas fue ")
-                    .append(maxDay[0])
-                    .append(" con ")
-                    .append(formatCurrency(maxAmount))
-                    .append(". ");
-                text.append("El día con menores ventas fue ")
-                    .append(minDay[0])
-                    .append(" con ")
-                    .append(formatCurrency(minAmount))
-                    .append(".");
+                if (maxDay != null && minDay != null) {
+                    text.append("El día con mayores ventas fue ")
+                        .append(maxDay[0])
+                        .append(" con ")
+                        .append(formatCurrency(maxAmount))
+                        .append(". ");
+                    text.append("El día con menores ventas fue ")
+                        .append(minDay[0])
+                        .append(" con ")
+                        .append(formatCurrency(minAmount))
+                        .append(".");
+                } else {
+                    text.append("Datos insuficientes para análisis de tendencias.");
+                }
             } else {
                 text.append("Período corto sin suficientes datos para análisis de tendencias detallado.");
             }
@@ -676,33 +683,40 @@ public class ReportService {
             List<Object[]> ventasPorMes = ventaRepository.salesByMonthBetween(from, to);
             if (ventasPorMes != null && ventasPorMes.size() > 1) {
                 // Encontrar mes con mayores y menores ventas
-                Object[] maxMonth = ventasPorMes.get(0);
-                Object[] minMonth = ventasPorMes.get(0);
-                BigDecimal maxAmount = BigDecimal.ZERO;
-                BigDecimal minAmount = new BigDecimal("999999999");
+                Object[] maxMonth = null;
+                Object[] minMonth = null;
+                BigDecimal maxAmount = null;
+                BigDecimal minAmount = null;
                 
                 for (Object[] row : ventasPorMes) {
+                    if (row[1] == null) continue; // Skip null values
+                    
                     BigDecimal amount = numberToBigDecimal((Number) row[1]);
-                    if (amount.compareTo(maxAmount) > 0) {
+                    
+                    if (maxAmount == null || amount.compareTo(maxAmount) > 0) {
                         maxAmount = amount;
                         maxMonth = row;
                     }
-                    if (amount.compareTo(minAmount) < 0) {
+                    if (minAmount == null || amount.compareTo(minAmount) < 0) {
                         minAmount = amount;
                         minMonth = row;
                     }
                 }
                 
-                text.append("El mes con mayores ventas fue ")
-                    .append(maxMonth[0])
-                    .append(" con ")
-                    .append(formatCurrency(maxAmount))
-                    .append(". ");
-                text.append("El mes con menores ventas fue ")
-                    .append(minMonth[0])
-                    .append(" con ")
-                    .append(formatCurrency(minAmount))
-                    .append(".");
+                if (maxMonth != null && minMonth != null) {
+                    text.append("El mes con mayores ventas fue ")
+                        .append(maxMonth[0])
+                        .append(" con ")
+                        .append(formatCurrency(maxAmount))
+                        .append(". ");
+                    text.append("El mes con menores ventas fue ")
+                        .append(minMonth[0])
+                        .append(" con ")
+                        .append(formatCurrency(minAmount))
+                        .append(".");
+                } else {
+                    text.append("Datos insuficientes para análisis de tendencias.");
+                }
             } else {
                 text.append("Datos mensuales disponibles para el período analizado.");
             }
