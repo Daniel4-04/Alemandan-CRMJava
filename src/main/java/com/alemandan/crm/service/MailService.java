@@ -213,7 +213,7 @@ public class MailService {
      */
     public void enviarCorreoContactoAdminRecuperacion(String to) throws Exception {
         String subject = "Recuperación de contraseña - Alemandan CRM";
-        String body = "Para recuperar contraseña, contáctese con el administrador.";
+        String body = "Para recuperación de contraseña porfavor contactar con el administrador\nContacto: 3216397497";
         
         logger.info("Enviando email de recuperación sencillo a {}", to);
         
