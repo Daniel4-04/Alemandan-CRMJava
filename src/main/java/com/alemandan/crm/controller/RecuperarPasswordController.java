@@ -58,24 +58,16 @@ public class RecuperarPasswordController {
             return "login";
         }
 
-        // Set session attribute to mark that this email is authorized for password reset
-        // This provides security: only users who request reset through proper flow can access it
-        session.setAttribute("resetAuthorizedEmail", email);
-        session.setAttribute("resetAuthorizedTime", System.currentTimeMillis());
-        // Session will expire automatically after configured timeout (default 30 min)
-
-        // Enviar correo con enlace de recuperación - wrapped to prevent SMTP failures from blocking
+        // Enviar correo simple de contacto con administrador
         try {
-            String link = appBaseUrl + "/reset-password";
-            // Log password reset request (email only for security)
-            logger.info("Password reset email sent to: {}", email);
-            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), link);
+            mailService.enviarCorreoContactoAdminRecuperacion(email);
+            logger.info("Correo de recuperación enviado exitosamente a: {}", email);
+            model.addAttribute("recuperarMensaje", "Correo enviado. Revise su bandeja.");
         } catch (Exception e) {
-            // Log error but continue - session is already set
-            logger.error("Failed to send password recovery email to: {}", email, e);
+            logger.error("Error al enviar correo de recuperación a: {}", email, e);
+            model.addAttribute("recuperarError", "Error al enviar el correo. Por favor, intente nuevamente más tarde.");
         }
-
-        model.addAttribute("recuperarMensaje", "Se ha enviado un enlace de recuperación a tu correo.");
+        
         // Mantener el slide de recuperar activo
         model.addAttribute("showRecuperar", true);
         return "login";
