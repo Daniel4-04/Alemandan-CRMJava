@@ -3,6 +3,7 @@ package com.alemandan.crm.controller;
 import com.alemandan.crm.model.Usuario;
 import com.alemandan.crm.repository.UsuarioRepository;
 import com.alemandan.crm.service.MailService;
+import com.alemandan.crm.service.PasswordResetService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,8 @@ public class RecuperarPasswordController {
     private MailService mailService;
     @Autowired
     private PasswordEncoder passwordEncoder;
+    @Autowired
+    private PasswordResetService passwordResetService;
     
     @Value("${app.base.url:http://localhost:8080}")
     private String appBaseUrl;
@@ -58,9 +61,16 @@ public class RecuperarPasswordController {
             return "login";
         }
 
-        // Enviar correo simple de contacto con administrador
+        // Generate password reset token
         try {
-            mailService.enviarCorreoContactoAdminRecuperacion(email);
+            String token = passwordResetService.createTokenForEmail(email, usuario.getId());
+            
+            // Build the password reset link pointing to the static HTML page
+            String resetLink = appBaseUrl + "/password-reset.html?token=" + token;
+            
+            // Send email with the reset link
+            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), resetLink);
+            
             logger.info("Correo de recuperación enviado exitosamente a: {}", email);
             model.addAttribute("recuperarMensaje", "Correo enviado. Revise su bandeja.");
         } catch (Exception e) {
