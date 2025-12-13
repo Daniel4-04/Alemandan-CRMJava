@@ -204,6 +204,34 @@ public class MailService {
         enviarConSMTPTexto(to, subject, body);
     }
 
+    /**
+     * Envía correo simple de recuperación de contraseña indicando que el usuario debe contactar al administrador.
+     * No genera ni envía tokens/enlaces.
+     * 
+     * @param to Email del destinatario
+     * @throws Exception si el envío falla (propagada para manejo en el controlador)
+     */
+    public void enviarCorreoContactoAdminRecuperacion(String to) throws Exception {
+        String subject = "Recuperación de contraseña - Alemandan CRM";
+        String body = "Para recuperar contraseña, contáctese con el administrador.";
+        
+        logger.info("Enviando email de recuperación sencillo a {}", to);
+        
+        // Try SendGrid API first if configured
+        if (StringUtils.hasText(sendGridApiKey)) {
+            try {
+                if (enviarConSendGridTextoConExcepcion(to, subject, body)) {
+                    return; // Success with SendGrid
+                }
+            } catch (Exception e) {
+                logger.warn("SendGrid failed, falling back to SMTP for: {}", to);
+            }
+        }
+        
+        // Fallback to SMTP - but throw exception if it fails
+        enviarConSMTPTextoConExcepcion(to, subject, body);
+    }
+
     public void enviarCorreoRecuperarPassword(String to, String nombre, String link) {
         String subject = "Recuperar contraseña - AlemandanPOS";
         String body = "Hola " + nombre + ",\n\n"
@@ -278,6 +306,43 @@ public class MailService {
     }
     
     /**
+     * Send plain text email using SendGrid API with exception propagation.
+     * @return true if successful
+     * @throws Exception if sending fails
+     */
+    private boolean enviarConSendGridTextoConExcepcion(String to, String subject, String textBody) throws Exception {
+        try {
+            Email from = new Email(senderEmail);
+            Email toEmail = new Email(to);
+            Content content = new Content("text/plain", textBody);
+            Mail mail = new Mail(from, subject, toEmail, content);
+            
+            SendGrid sg = new SendGrid(sendGridApiKey);
+            Request request = new Request();
+            request.setMethod(Method.POST);
+            request.setEndpoint("mail/send");
+            request.setBody(mail.build());
+            
+            Response response = sg.api(request);
+            
+            if (response.getStatusCode() >= 200 && response.getStatusCode() < 300) {
+                logger.info("Email sent successfully via SendGrid to: {} (status: {})", to, response.getStatusCode());
+                return true;
+            } else {
+                logger.error("SendGrid API returned error status {} for: {}. Body: {}", 
+                    response.getStatusCode(), to, response.getBody());
+                throw new IOException("SendGrid API error: " + response.getStatusCode());
+            }
+        } catch (IOException e) {
+            logger.error("SendGrid API IO error sending to: {}. Error: {}", to, e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unexpected error with SendGrid for: {}. Error: {}", to, e.getMessage(), e);
+            throw e;
+        }
+    }
+    
+    /**
      * Send plain text email using SMTP (JavaMailSender).
      */
     private void enviarConSMTPTexto(String to, String subject, String textBody) {
@@ -292,6 +357,27 @@ public class MailService {
             logger.error("Failed to send email to: {}. SMTP error: {}", to, e.getMessage(), e);
         } catch (Exception e) {
             logger.error("Unexpected error sending email to: {}. Error: {}", to, e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Send plain text email using SMTP (JavaMailSender) with exception propagation.
+     * This version throws exceptions for explicit error handling in the caller.
+     */
+    private void enviarConSMTPTextoConExcepcion(String to, String subject, String textBody) throws Exception {
+        try {
+            SimpleMailMessage mensaje = new SimpleMailMessage();
+            mensaje.setTo(to);
+            mensaje.setSubject(subject);
+            mensaje.setText(textBody);
+            mailSender.send(mensaje);
+            logger.info("Email sent successfully via SMTP to: {}", to);
+        } catch (MailException e) {
+            logger.error("Failed to send email to: {}. SMTP error: {}", to, e.getMessage(), e);
+            throw e;
+        } catch (Exception e) {
+            logger.error("Unexpected error sending email to: {}. Error: {}", to, e.getMessage(), e);
+            throw e;
         }
     }
 }
