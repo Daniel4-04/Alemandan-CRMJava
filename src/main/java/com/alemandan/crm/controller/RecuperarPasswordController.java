@@ -61,15 +61,11 @@ public class RecuperarPasswordController {
             return "login";
         }
 
-        // Generate password reset token
+        // Send simple admin contact email (no token/link)
         try {
-            String token = passwordResetService.createTokenForEmail(email, usuario.getId());
+            logger.info("Iniciando envío de correo de recuperación a: {}", email);
             
-            // Build the password reset link pointing to the static HTML page
-            String resetLink = appBaseUrl + "/password-reset.html?token=" + token;
-            
-            // Send email with the reset link
-            mailService.enviarCorreoRecuperarPassword(email, usuario.getNombre(), resetLink);
+            mailService.enviarCorreoContactoAdminRecuperacion(email);
             
             logger.info("Correo de recuperación enviado exitosamente a: {}", email);
             model.addAttribute("recuperarMensaje", "Correo enviado. Revise su bandeja.");
